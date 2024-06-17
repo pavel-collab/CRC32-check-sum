@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include "directory.hpp"
+
 static const unsigned int Crc32Table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
     0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -79,6 +81,8 @@ int ChecSum(const char* filename);
 
 std::vector<std::string> GetObjectList(const char* path_to_directory);
 
-void handle_events(int fd, int *wd, int argc, char* argv[]);
+void handle_events(int fd, Directory* dir);
+
+void* event_main_loop(void* arg) ;
 
 #endif // _TBALE_H_

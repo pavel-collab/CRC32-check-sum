@@ -12,10 +12,13 @@
 #include <sched.h>
 #include <poll.h>
 #include <sys/inotify.h>
+#include <pthread.h>
 
 #include <unordered_map>
+#include <ctime>
 
 #include "table.hpp"
+#include "directory.hpp"
 
 // нельзя оптимизировать использование этой переменной
 volatile int cought_signum;
@@ -24,6 +27,9 @@ volatile int proc_pid;
 // прокачанный обработчик
 void sig_handler(int signum, siginfo_t *info, void *ctx) {
     cought_signum = signum;
+    if (cought_signum == SIGINT) {
+        printf("[DEBUG]\n");
+    }
     proc_pid = info->si_pid;
 }
 
@@ -44,14 +50,6 @@ int main(int argc, char* argv[]) {
 
     term_handler.sa_sigaction = sig_handler;
     term_handler.sa_flags = SA_RESTART | SA_SIGINFO;
-    // if (sigaction(SIGTSTP, &term_handler, NULL) == -1) {
-    //     perror("sigaction(SIGTSTP)");
-    //     return -1;
-    // } // ^z
-    // if (sigaction(SIGINT, &term_handler, NULL) == -1) {
-    //     perror("sigaction(SIGTSTP)");
-    //     return -1;
-    // } // ^c
     if (sigaction(SIGQUIT, &term_handler, NULL) == -1) {
         perror("sigaction(SIGTSTP)");
         return -1;
@@ -67,26 +65,25 @@ int main(int argc, char* argv[]) {
 
     auto file_list = GetObjectList(path_to_directory);
     std::unordered_map<std::string, unsigned int> check_sum_container;
+
+    pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
+    Directory dir{1, period, mu, path_to_directory, check_sum_container};
     
     unsigned int check_sum = 0;
     std::string file_path;
     for (auto file : file_list) {
         file_path = std::string(path_to_directory) + "/" + file;
         check_sum = ChecSum(file_path.c_str());
-        check_sum_container.insert({file_path, check_sum});
+        dir.check_sum_container.insert({file_path, check_sum});
         printf("0x%08x\n", check_sum);
     }
-
-    // int counter = 0;
-    // while(1) {
-    //     sleep(period);
-
-    //     for (auto file : check_sum_container) {
-    //         if (ChecSum(file.first.c_str()) != file.second) {
-    //             fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x", file.first.c_str(), file.second, ChecSum(file.first.c_str()));
-    //         }
-    //     }
-    // }
+    
+    pthread_t thread;
+    if (errno = pthread_create(&thread, NULL, event_main_loop, &dir)) {
+        //! прибивать потоки и чистить ресурсы в случае аварийной остановки программы
+        perror("pthread_create");
+        return 1;
+    }
 
     char buf;
     int fd, i, poll_num;
@@ -109,20 +106,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    /* Mark directories for events
-            - file was opened
-            - file was closed 
-            - there was an access to the file (read for example)
-            - in watched directory was created a new file
-            - in watched directory was deleted a file
-            - file was modified
-            - meta data of file was modified */
-    wd[0] = inotify_add_watch(fd, path_to_directory,
-                                    // IN_OPEN | 
-                                    // IN_CLOSE |
-                                    // IN_ACCESS |
-                                    IN_CREATE | 
-                                    IN_DELETE);
+    wd[0] = inotify_add_watch(fd, path_to_directory, IN_CREATE | IN_DELETE);
     if (wd[0] == -1) {
         fprintf(stderr, "Cannot watch %s\n", argv[i]);
         perror("inotify_add_watch");
@@ -154,7 +138,7 @@ int main(int argc, char* argv[]) {
 
         if (poll_num > 0) {
 
-            if (fds[0].revents & POLLIN) {
+            if ((fds[0].revents & POLLIN)) {
                 /* Console input is available. Empty stdin and quit */
                 pause();
             }
@@ -162,11 +146,13 @@ int main(int argc, char* argv[]) {
             if (fds[1].revents & POLLIN) {
                 /* Inotify events are available */
                 puts("-------------------------------------------------------------------------------------------");
-                handle_events(fd, wd, argc, argv);
+                handle_events(fd, &dir);
                 puts("-------------------------------------------------------------------------------------------");
             }
         }
     }
+
+    pthread_join(thread, NULL);
 
     /* Close inotify file descriptor */
     close(fd);

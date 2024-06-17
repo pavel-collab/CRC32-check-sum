@@ -15,6 +15,9 @@ set(SRC_EVENT_HANDLER event_hendler.cpp)
 # EXECUTABLES
 add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER})
 
+# TARGETS LINK LIBRARIES
+target_link_libraries(${MAIN} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
+
 add_compile_options(
     -O2    
 

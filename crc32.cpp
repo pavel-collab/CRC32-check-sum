@@ -25,7 +25,7 @@ unsigned int Crc32(const unsigned char* buf, unsigned len) {
 
 void GetFileInfo(const char* filename,  struct stat *sb) {
     if (lstat(filename, sb) == -1) {
-        perror("lstat");
+        fprintf(stderr, "lstat problem with file %s\n", filename);
         return;
     }
 
