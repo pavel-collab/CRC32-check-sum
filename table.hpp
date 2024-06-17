@@ -79,4 +79,6 @@ int ChecSum(const char* filename);
 
 std::vector<std::string> GetObjectList(const char* path_to_directory);
 
+void handle_events(int fd, int *wd, int argc, char* argv[]);
+
 #endif // _TBALE_H_
