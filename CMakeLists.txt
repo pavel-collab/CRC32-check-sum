@@ -11,10 +11,9 @@ set(MAIN "main")
 set(SRC_MAIN main.cpp)
 set(SRC_CRC crc32.cpp)
 set(SRC_EVENT_HANDLER event_hendler.cpp)
-set(SRC_ARG_PARSER arg_parser.cpp)
 
 # EXECUTABLES
-add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER} ${SRC_ARG_PARSER})
+add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER})
 
 # TARGETS LINK LIBRARIES
 target_link_libraries(${MAIN} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
