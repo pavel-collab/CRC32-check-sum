@@ -15,6 +15,7 @@
 #include <filesystem>
 
 #include "table.hpp"
+#include "crc32.hpp"
 
 unsigned int Crc32(const unsigned char* buf, unsigned len) {
     unsigned int crc = 0xFFFFFFFF;
@@ -99,4 +100,14 @@ std::vector<std::string> GetObjectList(const char* path_to_directory) {
     }
 
     return file_list;
+}
+
+void CheckSumDerectory(Directory* dir) {
+    for (auto file : dir->check_sum_container) {
+        unsigned int crc_sum = ChecSum(file.first.c_str());
+        if (crc_sum != file.second) {
+            fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file.first.c_str(), file.second, crc_sum);
+            dir->check_sum_container[file.first] = crc_sum;
+        }
+    }
 }

@@ -13,12 +13,16 @@
 #include <poll.h>
 #include <sys/inotify.h>
 #include <pthread.h>
+#include <getopt.h>
 
 #include <unordered_map>
 #include <ctime>
 
 #include "table.hpp"
 #include "directory.hpp"
+#include "crc32.hpp"
+#include "event_handler.hpp"
+#include "arg_parser.hpp"
 
 // нельзя оптимизировать использование этой переменной
 volatile int cought_signum;
@@ -35,21 +39,25 @@ void sig_handler(int signum, siginfo_t *info, void *ctx) {
 
 int main(int argc, char* argv[]) {
 
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s filename to check sum\n", argv[0]);
+    parse_args (argc, argv);
+    if (path_to_directory == NULL) {
+        fprintf(stderr, "Bad directory\n");
         return -1;
     }
-
-    const char* path_to_directory = argv[1];
-    int period = 60;
-    if (argc == 3) {
-        period = atoi(argv[2]);
+    //TODO: проверить существование дериктории
+    if (periode <= 0) {
+        fprintf(stderr, "Bad periode = %d\n", periode);
+        return -1;
     }
 
     struct sigaction term_handler = {0};
 
     term_handler.sa_sigaction = sig_handler;
     term_handler.sa_flags = SA_RESTART | SA_SIGINFO;
+    if (sigaction(SIGTSTP, &term_handler, NULL) == -1) {
+        perror("sigaction(SIGTSTP)");
+        return -1;
+    } // ^z
     if (sigaction(SIGQUIT, &term_handler, NULL) == -1) {
         perror("sigaction(SIGTSTP)");
         return -1;
@@ -83,8 +91,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    ThreadArgs args{pips_fds[1], periode};
+
     pthread_t thread;
-    if (errno = pthread_create(&thread, NULL, event_main_loop, &pips_fds[1])) {
+    if (errno = pthread_create(&thread, NULL, event_main_loop, &args)) {
         //! прибивать потоки и чистить ресурсы в случае аварийной остановки программы
         perror("pthread_create");
         return 1;
@@ -111,7 +121,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    wd[0] = inotify_add_watch(fd, path_to_directory, IN_CREATE | IN_DELETE);
+    wd[0] = inotify_add_watch(fd, path_to_directory, IN_CREATE | IN_DELETE | IN_MODIFY);
     if (wd[0] == -1) {
         fprintf(stderr, "Cannot watch %s\n", argv[i]);
         perror("inotify_add_watch");
@@ -162,15 +172,12 @@ int main(int argc, char* argv[]) {
 
             if (fds[2].revents & POLLIN) {
                 read(pips_fds[0], b, sizeof(b));
-                for (auto file : dir.check_sum_container) {
-                    if (ChecSum(file.first.c_str()) != file.second) {
-                        fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file.first.c_str(), file.second, ChecSum(file.first.c_str()));
-                    }
-                }
+                CheckSumDerectory(&dir);
             }
         }
     }
 
+    //! here we don't need to waight for the thread, cz, it's just a external timer, it doesn't give us any valuable information
     // pthread_join(thread, NULL);
 
     /* Close inotify file descriptor */

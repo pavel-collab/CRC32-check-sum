@@ -75,14 +75,4 @@ static const unsigned int Crc32Table[256] = {
 
 const unsigned max_len = 1024 * 1024;
 
-unsigned int Crc32(const unsigned char* buf, unsigned len);
-
-int ChecSum(const char* filename);
-
-std::vector<std::string> GetObjectList(const char* path_to_directory);
-
-void handle_events(int fd, Directory* dir);
-
-void* event_main_loop(void* arg) ;
-
 #endif // _TBALE_H_

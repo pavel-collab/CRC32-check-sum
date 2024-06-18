@@ -4,11 +4,15 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <queue>
 
 struct Directory {
     std::string path_to_directory;
     std::unordered_map<std::string, unsigned int> check_sum_container;
+};
+
+struct ThreadArgs {
+    int fd;
+    int periode;
 };
 
 #endif //_DIRECTORY_H_

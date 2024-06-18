@@ -9,6 +9,7 @@
 
 #include "table.hpp"
 #include "directory.hpp"
+#include "crc32.hpp"
 
 void handle_events(int fd, Directory* dir) {
 
@@ -31,11 +32,6 @@ void handle_events(int fd, Directory* dir) {
             perror("read");
             return;
         }
-        /*  
-        If the nonblocking read() found no events to read, then
-        it returns -1 with errno set to EAGAIN. In that case,
-        we exit the loop. 
-        */
 
         if (len <= 0)
             break;
@@ -50,10 +46,6 @@ void handle_events(int fd, Directory* dir) {
                     unsigned int check_sum = ChecSum(file_path.c_str());
                     dir->check_sum_container.insert({file_path, check_sum});
                     printf("0x%08x\n", check_sum);
-                    
-                    for (auto f : dir->check_sum_container) {
-                        printf("[DEBUG] %s\n", f.first.c_str());
-                    }
                 }
             }
 
@@ -64,9 +56,16 @@ void handle_events(int fd, Directory* dir) {
                     if(pos != dir->check_sum_container.end()){
                         dir->check_sum_container.erase(pos);
                     }
-                    
-                    for (auto f : dir->check_sum_container) {
-                        printf("[DEBUG] %s\n", f.first.c_str());
+                }
+            }
+
+            if (event->mask & IN_MODIFY){
+                if (event->len && !(event->mask & IN_ISDIR)) {
+                    std::string file_path = std::string(dir->path_to_directory) + "/" + event->name;
+                    unsigned int crc_sum = ChecSum(file_path.c_str());
+                    if (crc_sum != dir->check_sum_container[file_path]) {
+                        fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file_path.c_str(), dir->check_sum_container[file_path], crc_sum);
+                        dir->check_sum_container[file_path] = crc_sum;
                     }
                 }
             }
@@ -75,10 +74,11 @@ void handle_events(int fd, Directory* dir) {
 }
 
 void* event_main_loop(void* arg) {
-    int* pipe = (int*) arg;
+    ThreadArgs* args = (ThreadArgs*) arg;
+    int pipe = args->fd;
     while(1) {
-        sleep(60);
-        write(*pipe, "1", strlen("1")+1);
+        sleep(args->periode);
+        write(pipe, "1", strlen("1")+1);
     }
     return NULL;
 }
