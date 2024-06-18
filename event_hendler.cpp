@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/inotify.h>
 #include <poll.h>
+#include <string.h>
 
 #include <algorithm>
 
@@ -58,7 +59,11 @@ void handle_events(int fd, Directory* dir) {
 
             if (event->mask & IN_DELETE) {
                 if (event->len && !(event->mask & IN_ISDIR)) {
-                    dir->check_sum_container.erase(event->name);
+                    std::string file_path = std::string(dir->path_to_directory) + "/" + event->name;
+                    auto pos = dir->check_sum_container.find(file_path);
+                    if(pos != dir->check_sum_container.end()){
+                        dir->check_sum_container.erase(pos);
+                    }
                     
                     for (auto f : dir->check_sum_container) {
                         printf("[DEBUG] %s\n", f.first.c_str());
@@ -70,25 +75,10 @@ void handle_events(int fd, Directory* dir) {
 }
 
 void* event_main_loop(void* arg) {
-    Directory* dir = (Directory*) arg;
-    unsigned int cs = 0;
-
+    int* pipe = (int*) arg;
     while(1) {
-        sleep(dir->periode);
-        pthread_mutex_lock(&dir->mu);
-        if (dir->flag == 0) {
-            break;
-        }
-        pthread_mutex_unlock(&dir->mu);
-
-        for (auto file : dir->check_sum_container) {
-            pthread_mutex_lock(&dir->mu);
-            cs = ChecSum(file.first.c_str());
-            pthread_mutex_unlock(&dir->mu);
-            if (cs != file.second) {
-                fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x", file.first.c_str(), file.second, ChecSum(file.first.c_str()));
-            }
-        }
+        sleep(60);
+        write(*pipe, "1", strlen("1")+1);
     }
     return NULL;
 }

@@ -66,8 +66,7 @@ int main(int argc, char* argv[]) {
     auto file_list = GetObjectList(path_to_directory);
     std::unordered_map<std::string, unsigned int> check_sum_container;
 
-    pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
-    Directory dir{1, period, mu, path_to_directory, check_sum_container};
+    Directory dir{path_to_directory, check_sum_container};
     
     unsigned int check_sum = 0;
     std::string file_path;
@@ -77,9 +76,15 @@ int main(int argc, char* argv[]) {
         dir.check_sum_container.insert({file_path, check_sum});
         printf("0x%08x\n", check_sum);
     }
-    
+
+    int pips_fds[2];
+    if (pipe(pips_fds) < 0) {
+        perror("failed to create pipe");
+        return -1;
+    }
+
     pthread_t thread;
-    if (errno = pthread_create(&thread, NULL, event_main_loop, &dir)) {
+    if (errno = pthread_create(&thread, NULL, event_main_loop, &pips_fds[1])) {
         //! прибивать потоки и чистить ресурсы в случае аварийной остановки программы
         perror("pthread_create");
         return 1;
@@ -114,7 +119,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* Prepare for polling */
-    nfds = 2;
+    nfds = 3;
 
     //* man poll(2)
     fds[0].fd = STDIN_FILENO; // stdin
@@ -122,6 +127,11 @@ int main(int argc, char* argv[]) {
 
     fds[1].fd = fd; // inotify
     fds[1].events = POLLIN; // watched event -- input
+
+    fds[2].fd = pips_fds[0]; // inotify
+    fds[2].events = POLLIN; // watched event -- input
+
+    char b[1];
 
     /* Wait for events and/or terminal input */
     printf("Waiting for events\n\n");
@@ -149,10 +159,19 @@ int main(int argc, char* argv[]) {
                 handle_events(fd, &dir);
                 puts("-------------------------------------------------------------------------------------------");
             }
+
+            if (fds[2].revents & POLLIN) {
+                read(pips_fds[0], b, sizeof(b));
+                for (auto file : dir.check_sum_container) {
+                    if (ChecSum(file.first.c_str()) != file.second) {
+                        fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file.first.c_str(), file.second, ChecSum(file.first.c_str()));
+                    }
+                }
+            }
         }
     }
 
-    pthread_join(thread, NULL);
+    // pthread_join(thread, NULL);
 
     /* Close inotify file descriptor */
     close(fd);
