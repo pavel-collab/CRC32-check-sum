@@ -82,12 +82,23 @@ static void parse_args (int argc, char **argv) {
 
 int main(int argc, char* argv[]) {
 
-    parse_args (argc, argv);
+    // firstly check the enviroment variables
+    char* TARGET_DIR_PATH = getenv("TARGET_DIR_PATH");
+    char* PERIOD = getenv("PERIOD");
+
+    //TODO: переписать на нормальную логику
+    if (TARGET_DIR_PATH == NULL || PERIOD == NULL) {
+        parse_args (argc, argv);
+    } else {
+        path_to_directory = TARGET_DIR_PATH;
+        periode = atoi(PERIOD);
+    }
+
     if (path_to_directory == NULL) {
         fprintf(stderr, "Bad directory\n");
         return -1;
     }
-    //TODO: проверить существование дериктории
+    //TODO: проверить существование дериктории (а надо ли, мне open в любом случае выдаст ошибку, если что)
     if (periode <= 0) {
         fprintf(stderr, "Bad periode = %d\n", periode);
         return -1;
