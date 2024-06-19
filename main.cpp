@@ -115,6 +115,18 @@ int main(int argc, char* argv[]) {
     }
 
     path_to_directory = realpath(path_to_directory, NULL);
+    if (path_to_directory == NULL) {
+        if (errno == ENOENT) {
+            openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+            syslog(LOG_INFO, "[err] target directory doesn't exist\n");
+            closelog();
+        } else {
+            openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+            syslog(LOG_INFO, "[err] unexpected problem with target directory\n");
+            closelog();
+        }
+        return -1;
+    }
 
     std::signal(SIGUSR1, signal_handler);
     std::signal(SIGALRM, signal_handler);
