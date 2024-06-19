@@ -15,29 +15,32 @@
 #include <pthread.h>
 #include <getopt.h>
 #include <getopt.h>
+#include <limits.h>
 
 #include <unordered_map>
 #include <ctime>
+#include <csignal>
+#include <iostream>
 
 #include "table.hpp"
 #include "directory.hpp"
 #include "crc32.hpp"
 #include "event_handler.hpp"
+#include "Demon.hpp"
+#include "Event.hpp"
+
+namespace {
+    volatile std::sig_atomic_t gSignalStatus;
+}
 
 static char *path_to_directory = NULL;
-int periode = 60;
+int periode = 0;
 
-// нельзя оптимизировать использование этой переменной
-volatile int cought_signum;
-volatile int proc_pid;
-
-// прокачанный обработчик
-void sig_handler(int signum, siginfo_t *info, void *ctx) {
-    cought_signum = signum;
-    if (cought_signum == SIGINT) {
-        printf("[DEBUG]\n");
+void signal_handler(int signal) {
+    gSignalStatus = signal;
+    if (signal == SIGALRM) {
+        alarm(periode);
     }
-    proc_pid = info->si_pid;
 }
 
 static void show_help() {
@@ -82,161 +85,69 @@ static void parse_args (int argc, char **argv) {
 
 int main(int argc, char* argv[]) {
 
-    // firstly check the enviroment variables
-    char* TARGET_DIR_PATH = getenv("TARGET_DIR_PATH");
-    char* PERIOD = getenv("PERIOD");
+    parse_args(argc, argv);
 
-    //TODO: переписать на нормальную логику
-    if (TARGET_DIR_PATH == NULL || PERIOD == NULL) {
-        parse_args (argc, argv);
-    } else {
+    char* TARGET_DIR_PATH = getenv("TARGET_DIR_PATH");
+    char* PERIODE = getenv("PERIODE");
+
+    if (TARGET_DIR_PATH != NULL) {
         path_to_directory = TARGET_DIR_PATH;
-        periode = atoi(PERIOD);
+    }
+
+    if (PERIODE != NULL) {
+        periode = atoi(PERIODE);
+    }
+
+    if (periode <= 0) {
+        fprintf(stderr, "[err] the periode can't be <= 0, but it's %d\n", periode);
+        return -1;
     }
 
     if (path_to_directory == NULL) {
-        fprintf(stderr, "Bad directory\n");
-        return -1;
-    }
-    //TODO: проверить существование дериктории (а надо ли, мне open в любом случае выдаст ошибку, если что)
-    if (periode <= 0) {
-        fprintf(stderr, "Bad periode = %d\n", periode);
+        perror("path_to directory is still NULL");
         return -1;
     }
 
-    struct sigaction term_handler = {0};
+    path_to_directory = realpath(path_to_directory, NULL);
 
-    term_handler.sa_sigaction = sig_handler;
-    term_handler.sa_flags = SA_RESTART | SA_SIGINFO;
-    if (sigaction(SIGTSTP, &term_handler, NULL) == -1) {
-        perror("sigaction(SIGTSTP)");
-        return -1;
-    } // ^z
-    if (sigaction(SIGQUIT, &term_handler, NULL) == -1) {
-        perror("sigaction(SIGTSTP)");
-        return -1;
-    } // ^/
-    if (sigaction(SIGHUP, &term_handler, NULL) == -1) {
-        perror("sigaction(SIGTSTP)");
-        return -1;
-    } // обрыв соединения
-    if (sigaction(SIGTERM, &term_handler, NULL) == -1) {
-        perror("sigaction(SIGTSTP)");
-        return -1;
-    } // завершение работы
+    std::signal(SIGUSR1, signal_handler);
+    std::signal(SIGUSR2, signal_handler);
+    std::signal(SIGALRM, signal_handler);
 
-    auto file_list = GetObjectList(path_to_directory);
-    std::unordered_map<std::string, unsigned int> check_sum_container;
+    alarm(periode);
 
-    Directory dir{path_to_directory, check_sum_container};
-    
-    unsigned int check_sum = 0;
-    std::string file_path;
-    for (auto file : file_list) {
-        file_path = std::string(path_to_directory) + "/" + file;
-        check_sum = ChecSum(file_path.c_str());
-        dir.check_sum_container.insert({file_path, check_sum});
-        printf("0x%08x\n", check_sum);
-    }
-
-    int pips_fds[2];
-    if (pipe(pips_fds) < 0) {
-        perror("failed to create pipe");
-        return -1;
-    }
-
-    ThreadArgs args{pips_fds[1], periode};
-
-    pthread_t thread;
-    if (errno = pthread_create(&thread, NULL, event_main_loop, &args)) {
-        //! прибивать потоки и чистить ресурсы в случае аварийной остановки программы
+    // create and run thread for inotify
+    pthread_t inotify_thread;
+    if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, path_to_directory)) {
         perror("pthread_create");
         return 1;
     }
 
-    char buf;
-    int fd, i, poll_num;
-    int* wd;
-    nfds_t nfds;
-
-    struct pollfd fds[1];
-
-    /* Create the file descriptor for accessing the inotify API */
-    fd = inotify_init1(IN_NONBLOCK);
-    if (fd == -1) {
-        perror("inotify_init1");
-        return -1;
+    Demon* new_demon = Demon::getInstance(path_to_directory);
+    // create and run thread for demon
+    pthread_t demon_thread;
+    if (errno = pthread_create(&demon_thread, NULL, threadDemonRun, new_demon)) {
+        perror("pthread_create");
+        return 1;
     }
 
-    /* Allocate memory for watch descriptors */
-    wd = (int*) calloc(1, sizeof(int));
-    if (wd == NULL) {
-        perror("calloc");
-        return -1;
-    }
-
-    wd[0] = inotify_add_watch(fd, path_to_directory, IN_CREATE | IN_DELETE | IN_MODIFY);
-    if (wd[0] == -1) {
-        fprintf(stderr, "Cannot watch %s\n", argv[i]);
-        perror("inotify_add_watch");
-        return -1;
-    }
-
-    /* Prepare for polling */
-    nfds = 3;
-
-    //* man poll(2)
-    fds[0].fd = STDIN_FILENO; // stdin
-    fds[0].events = POLLIN; // watched event -- input
-
-    fds[1].fd = fd; // inotify
-    fds[1].events = POLLIN; // watched event -- input
-
-    fds[2].fd = pips_fds[0]; // inotify
-    fds[2].events = POLLIN; // watched event -- input
-
-    char b[1];
-
-    /* Wait for events and/or terminal input */
-    printf("Waiting for events\n\n");
-    while (1) {
-
-        poll_num = poll(fds, nfds, -1); // 2 -- amount of file descriptions; -1 -- infinity waiting time
-
-        if (poll_num == -1) {
-            if (errno == EINTR)
-                continue;
-            perror("poll");
-            return -1;
+    while(1) {
+        sleep(1);
+        if (gSignalStatus == SIGUSR1) {
+            std::cout << "catch SIGUR1" << std::endl;
+            gSignalStatus = -1;
         }
 
-        if (poll_num > 0) {
+        if (gSignalStatus == SIGUSR2) {
+            std::cout << "catch SIGUR2" << std::endl;
+            gSignalStatus = -1;
+        }
 
-            if ((fds[0].revents & POLLIN)) {
-                /* Console input is available. Empty stdin and quit */
-                pause();
-            }
-
-            if (fds[1].revents & POLLIN) {
-                /* Inotify events are available */
-                puts("-------------------------------------------------------------------------------------------");
-                handle_events(fd, &dir);
-                puts("-------------------------------------------------------------------------------------------");
-            }
-
-            if (fds[2].revents & POLLIN) {
-                read(pips_fds[0], b, sizeof(b));
-                CheckSumDerectory(&dir);
-            }
+        if (gSignalStatus == SIGALRM) {
+            std::cout << "catch SIGALRM" << std::endl;
+            gSignalStatus = -1;
         }
     }
-
-    //! here we don't need to waight for the thread, cz, it's just a external timer, it doesn't give us any valuable information
-    // pthread_join(thread, NULL);
-
-    /* Close inotify file descriptor */
-    close(fd);
-    free(wd);
 
     return 0;
 }

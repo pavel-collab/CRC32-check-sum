@@ -6,12 +6,14 @@
 #include <string.h>
 
 #include <algorithm>
+#include <iostream>
 
 #include "table.hpp"
 #include "directory.hpp"
 #include "crc32.hpp"
+#include "Demon.hpp"
 
-void handle_events(int fd, Directory* dir) {
+void handle_events(int fd) {
 
     /*  
     the structure inotify must be read all, 
@@ -41,44 +43,100 @@ void handle_events(int fd, Directory* dir) {
             event = (const struct inotify_event *) ptr;
 
             if (event->mask & IN_CREATE) {
-                if (event->len && !(event->mask & IN_ISDIR)) {
-                    std::string file_path = std::string(dir->path_to_directory) + "/" + event->name;
-                    unsigned int check_sum = ChecSum(file_path.c_str());
-                    dir->check_sum_container.insert({file_path, check_sum});
-                    printf("0x%08x\n", check_sum);
-                }
+                std::cout << "file was created" << std::endl;
+                //TODO: raise the signal
             }
 
             if (event->mask & IN_DELETE) {
-                if (event->len && !(event->mask & IN_ISDIR)) {
-                    std::string file_path = std::string(dir->path_to_directory) + "/" + event->name;
-                    auto pos = dir->check_sum_container.find(file_path);
-                    if(pos != dir->check_sum_container.end()){
-                        dir->check_sum_container.erase(pos);
-                    }
-                }
+                std::cout << "file was deleted" << std::endl;
+                //TODO: raise the signal
             }
 
             if (event->mask & IN_MODIFY){
-                if (event->len && !(event->mask & IN_ISDIR)) {
-                    std::string file_path = std::string(dir->path_to_directory) + "/" + event->name;
-                    unsigned int crc_sum = ChecSum(file_path.c_str());
-                    if (crc_sum != dir->check_sum_container[file_path]) {
-                        fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file_path.c_str(), dir->check_sum_container[file_path], crc_sum);
-                        dir->check_sum_container[file_path] = crc_sum;
-                    }
-                }
+                std::cout << "file was modiryed" << std::endl;
+                //TODO: raise the signal
             }
         }
     }
 }
 
-void* event_main_loop(void* arg) {
-    ThreadArgs* args = (ThreadArgs*) arg;
-    int pipe = args->fd;
-    while(1) {
-        sleep(args->periode);
-        write(pipe, "1", strlen("1")+1);
+void* threadInotifyRun(void* arg) {
+    char* path_to_dir = (char*) arg;
+
+    char buf;
+    int fd, i, poll_num;
+    int* wd;
+    nfds_t nfds;
+
+    struct pollfd fds[1];
+
+    /* Create the file descriptor for accessing the inotify API */
+    fd = inotify_init1(IN_NONBLOCK);
+    if (fd == -1) {
+        perror("inotify_init1");
+        return NULL;
     }
+
+    /* Allocate memory for watch descriptors */
+    wd = (int*) calloc(1, sizeof(int));
+    if (wd == NULL) {
+        perror("calloc");
+        close(fd);
+        return NULL;
+    }
+
+    wd[0] = inotify_add_watch(fd, path_to_dir, IN_CREATE | IN_DELETE | IN_MODIFY);
+    if (wd[0] == -1) {
+        fprintf(stderr, "Cannot watch %s\n", path_to_dir);
+        perror("inotify_add_watch");
+        close(fd);
+        free(wd);
+        return NULL;
+    }
+
+    /* Prepare for polling */
+    nfds = 2;
+
+    //* man poll(2)
+    fds[0].fd = STDIN_FILENO; // stdin
+    fds[0].events = POLLIN; // watched event -- input
+
+    fds[1].fd = fd; // inotify
+    fds[1].events = POLLIN; // watched event -- input
+
+    while (1) {
+        poll_num = poll(fds, nfds, -1); // 2 -- amount of file descriptions; -1 -- infinity waiting time
+
+        if (poll_num == -1) {
+            if (errno == EINTR)
+                continue;
+            perror("poll");
+            close(fd);
+            free(wd);
+            return NULL;
+        }
+
+        if (poll_num > 0) {
+
+            if ((fds[0].revents & POLLIN)) {                   
+                // here we can catch message from stdin for example to exit program
+            }
+
+            if (fds[1].revents & POLLIN) {
+                handle_events(fd);
+            }
+        }
+    }
+
+    /* Close inotify file descriptor */
+    close(fd);
+    free(wd);
+
+    return NULL;
+}
+
+void* threadDemonRun(void* arg) {
+    Demon* demon = (Demon*) arg;
+    demon->startMainLoop();    
     return NULL;
 }

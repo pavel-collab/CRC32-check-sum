@@ -3,8 +3,10 @@
 
 #include "directory.hpp"
 
-void handle_events(int fd, Directory* dir);
+void handle_events(int fd);
 
-void* event_main_loop(void* arg);
+void* threadInotifyRun(void* arg);
+
+void* threadDemonRun(void* arg);
 
 #endif //_EVENT_HANDLDER_H_
