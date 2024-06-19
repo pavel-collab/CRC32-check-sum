@@ -23,8 +23,11 @@ private:
 
     std::queue<Event*> event_queue_;
     std::string path_to_dir_;
+    pthread_mutex_t mutex;
 protected: 
-    Demon(std::string& path_to_dir): path_to_dir_(path_to_dir) {};
+    Demon(std::string& path_to_dir): path_to_dir_(path_to_dir) {
+        this->mutex = PTHREAD_MUTEX_INITIALIZER;
+    };
     ~Demon() = default;
     friend class DemonDestroyer;
 public:
@@ -32,6 +35,7 @@ public:
     Demon(const Demon&) = delete;  
 
     void startMainLoop();
+    void addEvent(Event* event);
 };
 
 #endif

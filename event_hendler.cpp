@@ -4,6 +4,8 @@
 #include <sys/inotify.h>
 #include <poll.h>
 #include <string.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #include <algorithm>
 #include <iostream>
@@ -12,23 +14,16 @@
 #include "directory.hpp"
 #include "crc32.hpp"
 #include "Demon.hpp"
+#include "event_handler.hpp"
 
-void handle_events(int fd) {
-
-    /*  
-    the structure inotify must be read all, 
-    so it's necessary allocate enough buf size 
-    */
+void handle_events(int fd, pid_t main_proc_pid) {
     char buf[4096];
     const struct inotify_event *event;
     int i;
     ssize_t len;
     char *ptr;
 
-    /* Loop while events can be read from inotify file descriptor. */
     for (;;) {
-
-        /* read some events */
         len = read(fd, buf, sizeof(buf));
         if (len == -1 && errno != EAGAIN) {
             perror("read");
@@ -38,46 +33,40 @@ void handle_events(int fd) {
         if (len <= 0)
             break;
 
-        //* man inotify(7) 
         for (ptr = buf; ptr < buf + len; ptr += sizeof(struct inotify_event) + event->len) {
             event = (const struct inotify_event *) ptr;
 
             if (event->mask & IN_CREATE) {
-                std::cout << "file was created" << std::endl;
-                //TODO: raise the signal
+                kill(main_proc_pid, SIGUSR2);
             }
 
             if (event->mask & IN_DELETE) {
-                std::cout << "file was deleted" << std::endl;
-                //TODO: raise the signal
+                kill(main_proc_pid, SIGURG);
             }
 
             if (event->mask & IN_MODIFY){
-                std::cout << "file was modiryed" << std::endl;
-                //TODO: raise the signal
+                kill(main_proc_pid, SIGPROF);
             }
         }
     }
 }
 
 void* threadInotifyRun(void* arg) {
-    char* path_to_dir = (char*) arg;
+    inotifyThreadArgs* args = (inotifyThreadArgs*) arg;
 
     char buf;
     int fd, i, poll_num;
     int* wd;
-    nfds_t nfds;
+    nfds_t nfds = 2;
 
     struct pollfd fds[1];
 
-    /* Create the file descriptor for accessing the inotify API */
     fd = inotify_init1(IN_NONBLOCK);
     if (fd == -1) {
         perror("inotify_init1");
         return NULL;
     }
 
-    /* Allocate memory for watch descriptors */
     wd = (int*) calloc(1, sizeof(int));
     if (wd == NULL) {
         perror("calloc");
@@ -85,19 +74,15 @@ void* threadInotifyRun(void* arg) {
         return NULL;
     }
 
-    wd[0] = inotify_add_watch(fd, path_to_dir, IN_CREATE | IN_DELETE | IN_MODIFY);
+    wd[0] = inotify_add_watch(fd, args->path_to_dir, IN_CREATE | IN_DELETE | IN_MODIFY);
     if (wd[0] == -1) {
-        fprintf(stderr, "Cannot watch %s\n", path_to_dir);
+        fprintf(stderr, "Cannot watch %s\n", args->path_to_dir);
         perror("inotify_add_watch");
         close(fd);
         free(wd);
         return NULL;
     }
 
-    /* Prepare for polling */
-    nfds = 2;
-
-    //* man poll(2)
     fds[0].fd = STDIN_FILENO; // stdin
     fds[0].events = POLLIN; // watched event -- input
 
@@ -123,12 +108,11 @@ void* threadInotifyRun(void* arg) {
             }
 
             if (fds[1].revents & POLLIN) {
-                handle_events(fd);
+                handle_events(fd, args->main_proc_pid);
             }
         }
     }
 
-    /* Close inotify file descriptor */
     close(fd);
     free(wd);
 

@@ -16,6 +16,7 @@
 #include <getopt.h>
 #include <getopt.h>
 #include <limits.h>
+#include <sys/types.h>
 
 #include <unordered_map>
 #include <ctime>
@@ -112,13 +113,17 @@ int main(int argc, char* argv[]) {
 
     std::signal(SIGUSR1, signal_handler);
     std::signal(SIGUSR2, signal_handler);
+    std::signal(SIGURG, signal_handler);
+    std::signal(SIGPROF, signal_handler);
     std::signal(SIGALRM, signal_handler);
 
     alarm(periode);
 
     // create and run thread for inotify
+    inotifyThreadArgs inotify_thread_args{getpid(), path_to_directory};
+
     pthread_t inotify_thread;
-    if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, path_to_directory)) {
+    if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, &inotify_thread_args)) {
         perror("pthread_create");
         return 1;
     }
@@ -134,17 +139,36 @@ int main(int argc, char* argv[]) {
     while(1) {
         sleep(1);
         if (gSignalStatus == SIGUSR1) {
-            std::cout << "catch SIGUR1" << std::endl;
+            //TODO: проверить, нет ли здесь провисшего указателя
+            Event* new_event_ptr = new RehashEvent{};
+            new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
 
         if (gSignalStatus == SIGUSR2) {
-            std::cout << "catch SIGUR2" << std::endl;
+             //TODO: проверить, нет ли здесь провисшего указателя
+            Event* new_event_ptr = new RehashEvent{};
+            new_demon->addEvent(new_event_ptr);
+            gSignalStatus = -1;
+        }
+
+        if (gSignalStatus == SIGURG) {
+            //TODO: проверить, нет ли здесь провисшего указателя
+            Event* new_event_ptr = new DumpEvent{};
+            new_demon->addEvent(new_event_ptr);
+            gSignalStatus = -1;
+        }
+
+        if (gSignalStatus == SIGPROF) {
+            //TODO: проверить, нет ли здесь провисшего указателя
+            Event* new_event_ptr = new ExitEvent{};
+            new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
 
         if (gSignalStatus == SIGALRM) {
-            std::cout << "catch SIGALRM" << std::endl;
+            Event* new_event_ptr = new RehashEvent{};
+            new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
     }
