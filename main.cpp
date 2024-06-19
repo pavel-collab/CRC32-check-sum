@@ -136,19 +136,19 @@ int main(int argc, char* argv[]) {
     while(1) {
         sleep(1);
         if (gSignalStatus == SIGUSR1) {
-            Event* new_event_ptr = new CheckSumEvent();
+            Event* new_event_ptr = new CheckSumEvent(path_to_directory);
             new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
 
         if (gSignalStatus == SIGALRM) {
-            Event* new_event_ptr = new CheckSumEvent();
+            Event* new_event_ptr = new CheckSumEvent(path_to_directory);
             new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
 
         if (gSignalStatus == SIGINT) {
-            Event* new_event_ptr = new ExitEvent();
+            Event* new_event_ptr = new ExitEvent(path_to_directory);
             new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
             break;

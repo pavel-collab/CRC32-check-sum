@@ -36,18 +36,18 @@ void handle_events(int fd, Demon* demon_ptr) {
         for (ptr = buf; ptr < buf + len; ptr += sizeof(struct inotify_event) + event->len) {
             event = (const struct inotify_event *) ptr;
 
-            if (event->mask & IN_CREATE) {
-                Event* new_event_ptr = new AddFileEvent(event->name);
+            if ((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
+                Event* new_event_ptr = new AddFileEvent(demon_ptr->path_to_dir_, event->name);
                 demon_ptr->addEvent(new_event_ptr);
             }
 
-            if (event->mask & IN_DELETE) {
-                Event* new_event_ptr = new RmFileEvent(event->name);
+            if ((event->mask & IN_DELETE) && !(event->mask & IN_ISDIR)) {
+                Event* new_event_ptr = new RmFileEvent(demon_ptr->path_to_dir_, event->name);
                 demon_ptr->addEvent(new_event_ptr);
             }
 
-            if (event->mask & IN_MODIFY){
-                Event* new_event_ptr = new CheckFileEvent(event->name);
+            if ((event->mask & IN_MODIFY) && !(event->mask & IN_ISDIR)) {
+                Event* new_event_ptr = new CheckFileEvent(demon_ptr->path_to_dir_, event->name);
                 demon_ptr->addEvent(new_event_ptr);
             }
         }

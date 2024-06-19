@@ -21,7 +21,7 @@ Demon* Demon::getInstance(char* path_to_dir) {
 
 void Demon::startMainLoop() {
     
-    Event* start_event = new CrcInitializeEvent{};
+    Event* start_event = new CrcInitializeEvent{this->path_to_dir_};
     this->addEvent(start_event);
 
     while(1) {

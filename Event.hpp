@@ -8,7 +8,10 @@
 enum class EventId {CrcInitialize, CheckSum, AddFile, RmFile, CheckFile, Exit};
 
 class Event {
+protected:
+    std::string path_to_dir_;
 public:
+    Event(std::string path_to_dir): path_to_dir_(path_to_dir) {};
     EventId eventId;
     virtual void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) = 0;
     virtual ~Event() {};
@@ -16,7 +19,7 @@ public:
 
 class CrcInitializeEvent final: public Event {
 public:
-    CrcInitializeEvent() {
+    CrcInitializeEvent(std::string path_to_dir): Event(path_to_dir) {
         eventId = EventId::CheckSum;
     };
 
@@ -27,7 +30,7 @@ public:
 
 class CheckSumEvent final: public Event {
 public:
-    CheckSumEvent() {
+    CheckSumEvent(std::string path_to_dir): Event(path_to_dir) {
         eventId = EventId::CheckSum;
     };
 
@@ -36,9 +39,9 @@ public:
 };
 
 class AddFileEvent final: public Event {
-    std::string file_path_;
+    std::string file_name_;
 public:
-    AddFileEvent(std::string file_path): file_path_(file_path) {
+    AddFileEvent(std::string path_to_dir, std::string file_name): Event(path_to_dir), file_name_(file_name) {
         eventId = EventId::AddFile;
     };
 
@@ -47,9 +50,9 @@ public:
 };
 
 class RmFileEvent final: public Event {
-    std::string file_path_;
+    std::string file_name_;
 public:
-    RmFileEvent(std::string file_path): file_path_(file_path) {
+    RmFileEvent(std::string path_to_dir, std::string file_name): Event(path_to_dir), file_name_(file_name) {
         eventId = EventId::RmFile;
     };
 
@@ -58,9 +61,9 @@ public:
 };
 
 class CheckFileEvent final: public Event {
-    std::string file_path_;
+    std::string file_name_;
 public:
-    CheckFileEvent(std::string file_path): file_path_(file_path) {
+    CheckFileEvent(std::string path_to_dir, std::string file_name): Event(path_to_dir), file_name_(file_name) {
         eventId = EventId::CheckFile;
     };
 
@@ -70,7 +73,7 @@ public:
 
 class ExitEvent final: public Event {
 public:
-    ExitEvent() {
+    ExitEvent(std::string path_to_dir): Event(path_to_dir) {
         eventId = EventId::Exit;
     };
 

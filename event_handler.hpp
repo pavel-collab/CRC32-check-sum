@@ -3,8 +3,6 @@
 
 #include "directory.hpp"
 
-void handle_events(int fd);
-
 void* threadInotifyRun(void* arg);
 
 void* threadDemonRun(void* arg);

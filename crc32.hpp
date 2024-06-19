@@ -9,8 +9,6 @@ unsigned int Crc32(const unsigned char* buf, unsigned len);
 
 int ChecSum(const char* filename);
 
-std::vector<std::string> GetObjectList(const char* path_to_directory);
-
-void CheckSumDerectory(Directory* dir);
+void GetObjectList(const char* path_to_directory, std::vector<std::string>* file_list);
 
 #endif //_LIB_H_

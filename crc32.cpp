@@ -80,7 +80,7 @@ int filter(const struct dirent *name) {
   return 1;
 }
 
-std::vector<std::string> GetObjectList(const char* path_to_directory) {
+void GetObjectList(const char* path_to_directory, std::vector<std::string>* file_list) {
     struct dirent **namelist;
     int n = scandir(path_to_directory, &namelist, filter, alphasort);
     if (n == -1) {
@@ -88,26 +88,13 @@ std::vector<std::string> GetObjectList(const char* path_to_directory) {
         exit(EXIT_FAILURE);
     }
 
-    std::vector<std::string> file_list;
     while (n--) {
         switch(namelist[n]->d_type) {
         case DT_REG:
-            file_list.emplace_back(namelist[n]->d_name);
+            file_list->emplace_back(namelist[n]->d_name);
             break;
         default:
             continue;
-        }
-    }
-
-    return file_list;
-}
-
-void CheckSumDerectory(Directory* dir) {
-    for (auto file : dir->check_sum_container) {
-        unsigned int crc_sum = ChecSum(file.first.c_str());
-        if (crc_sum != file.second) {
-            fprintf(stderr, "[err] invalid check sum for file %s\n\tExpected 0x%08x, but got 0x%08x\n", file.first.c_str(), file.second, crc_sum);
-            dir->check_sum_container[file.first] = crc_sum;
         }
     }
 }
