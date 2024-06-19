@@ -20,6 +20,10 @@ Demon* Demon::getInstance(char* path_to_dir) {
 }
 
 void Demon::startMainLoop() {
+    
+    Event* start_event = new CrcInitializeEvent{};
+    this->addEvent(start_event);
+
     while(1) {
         if (!this->event_queue_.empty()) {
             pthread_mutex_lock(&this->mutex);
@@ -27,7 +31,12 @@ void Demon::startMainLoop() {
             this->event_queue_.pop();
             pthread_mutex_unlock(&this->mutex);
 
-            new_event->Handler();
+            if (new_event->eventId == EventId::Exit) {
+                new_event->Handler(&this->crc_sums);
+                break;
+            }
+
+            new_event->Handler(&this->crc_sums);
         }
     }
 }

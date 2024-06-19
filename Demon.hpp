@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <string>
+#include <unordered_map>
 
 #include "Event.hpp"
 
@@ -22,8 +23,8 @@ private:
     static DemonDestroyer destroyer;
 
     std::queue<Event*> event_queue_;
-    std::string path_to_dir_;
     pthread_mutex_t mutex;
+    std::unordered_map<std::string, unsigned int> crc_sums;
 protected: 
     Demon(std::string& path_to_dir): path_to_dir_(path_to_dir) {
         this->mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -36,6 +37,8 @@ public:
 
     void startMainLoop();
     void addEvent(Event* event);
+
+    std::string path_to_dir_;
 };
 
 #endif

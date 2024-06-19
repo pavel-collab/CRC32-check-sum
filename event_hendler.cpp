@@ -16,7 +16,7 @@
 #include "Demon.hpp"
 #include "event_handler.hpp"
 
-void handle_events(int fd, pid_t main_proc_pid) {
+void handle_events(int fd, Demon* demon_ptr) {
     char buf[4096];
     const struct inotify_event *event;
     int i;
@@ -37,22 +37,25 @@ void handle_events(int fd, pid_t main_proc_pid) {
             event = (const struct inotify_event *) ptr;
 
             if (event->mask & IN_CREATE) {
-                kill(main_proc_pid, SIGUSR2);
+                Event* new_event_ptr = new AddFileEvent(event->name);
+                demon_ptr->addEvent(new_event_ptr);
             }
 
             if (event->mask & IN_DELETE) {
-                kill(main_proc_pid, SIGURG);
+                Event* new_event_ptr = new RmFileEvent(event->name);
+                demon_ptr->addEvent(new_event_ptr);
             }
 
             if (event->mask & IN_MODIFY){
-                kill(main_proc_pid, SIGPROF);
+                Event* new_event_ptr = new CheckFileEvent(event->name);
+                demon_ptr->addEvent(new_event_ptr);
             }
         }
     }
 }
 
 void* threadInotifyRun(void* arg) {
-    inotifyThreadArgs* args = (inotifyThreadArgs*) arg;
+    Demon* demon = (Demon*) arg;
 
     char buf;
     int fd, i, poll_num;
@@ -74,9 +77,8 @@ void* threadInotifyRun(void* arg) {
         return NULL;
     }
 
-    wd[0] = inotify_add_watch(fd, args->path_to_dir, IN_CREATE | IN_DELETE | IN_MODIFY);
+    wd[0] = inotify_add_watch(fd, demon->path_to_dir_.c_str(), IN_CREATE | IN_DELETE | IN_MODIFY);
     if (wd[0] == -1) {
-        fprintf(stderr, "Cannot watch %s\n", args->path_to_dir);
         perror("inotify_add_watch");
         close(fd);
         free(wd);
@@ -108,7 +110,7 @@ void* threadInotifyRun(void* arg) {
             }
 
             if (fds[1].revents & POLLIN) {
-                handle_events(fd, args->main_proc_pid);
+                handle_events(fd, demon);
             }
         }
     }

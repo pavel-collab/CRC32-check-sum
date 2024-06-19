@@ -112,23 +112,20 @@ int main(int argc, char* argv[]) {
     path_to_directory = realpath(path_to_directory, NULL);
 
     std::signal(SIGUSR1, signal_handler);
-    std::signal(SIGUSR2, signal_handler);
-    std::signal(SIGURG, signal_handler);
-    std::signal(SIGPROF, signal_handler);
     std::signal(SIGALRM, signal_handler);
+    std::signal(SIGINT, signal_handler);
 
     alarm(periode);
 
-    // create and run thread for inotify
-    inotifyThreadArgs inotify_thread_args{getpid(), path_to_directory};
+    Demon* new_demon = Demon::getInstance(path_to_directory);
 
+    // create and run thread for inotify
     pthread_t inotify_thread;
-    if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, &inotify_thread_args)) {
+    if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, new_demon)) {
         perror("pthread_create");
         return 1;
     }
 
-    Demon* new_demon = Demon::getInstance(path_to_directory);
     // create and run thread for demon
     pthread_t demon_thread;
     if (errno = pthread_create(&demon_thread, NULL, threadDemonRun, new_demon)) {
@@ -139,37 +136,22 @@ int main(int argc, char* argv[]) {
     while(1) {
         sleep(1);
         if (gSignalStatus == SIGUSR1) {
-            //TODO: проверить, нет ли здесь провисшего указателя
-            Event* new_event_ptr = new RehashEvent{};
-            new_demon->addEvent(new_event_ptr);
-            gSignalStatus = -1;
-        }
-
-        if (gSignalStatus == SIGUSR2) {
-             //TODO: проверить, нет ли здесь провисшего указателя
-            Event* new_event_ptr = new RehashEvent{};
-            new_demon->addEvent(new_event_ptr);
-            gSignalStatus = -1;
-        }
-
-        if (gSignalStatus == SIGURG) {
-            //TODO: проверить, нет ли здесь провисшего указателя
-            Event* new_event_ptr = new DumpEvent{};
-            new_demon->addEvent(new_event_ptr);
-            gSignalStatus = -1;
-        }
-
-        if (gSignalStatus == SIGPROF) {
-            //TODO: проверить, нет ли здесь провисшего указателя
-            Event* new_event_ptr = new ExitEvent{};
+            Event* new_event_ptr = new CheckSumEvent();
             new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
         }
 
         if (gSignalStatus == SIGALRM) {
-            Event* new_event_ptr = new RehashEvent{};
+            Event* new_event_ptr = new CheckSumEvent();
             new_demon->addEvent(new_event_ptr);
             gSignalStatus = -1;
+        }
+
+        if (gSignalStatus == SIGINT) {
+            Event* new_event_ptr = new ExitEvent();
+            new_demon->addEvent(new_event_ptr);
+            gSignalStatus = -1;
+            break;
         }
     }
 
