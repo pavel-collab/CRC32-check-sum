@@ -1,38 +1,8 @@
-from os import system
 import subprocess
 import os
+from time import sleep
 
-syslog_file_path = "/var/log/syslog"
-
-def create_tmp_dir(path_to_dir: str) -> None:
-    tmp_dir_name = f"{path_to_dir}/tmp"
-    
-    if os.path.isdir(tmp_dir_name):
-        system(f"rm -rf {tmp_dir_name}")
-    system(f"mkdir {tmp_dir_name}")
-    system(f"touch {tmp_dir_name}/1.txt {tmp_dir_name}/2.txt")
-    with open(f"{tmp_dir_name}/1.txt", 'w') as f:
-        f.write("aaa")
-    with open(f"{tmp_dir_name}/2.txt", 'w') as f:
-        f.write("bbb")
-
-def change_tmp_dir(path_to_dir: str) -> None:
-    tmp_dir_name = f"{path_to_dir}/tmp"
-
-    system(f"rm {tmp_dir_name}/2.txt")
-    system(f"touch {tmp_dir_name}/3.txt")
-    with open(f"{tmp_dir_name}/1.txt", 'w') as f:
-        f.write("ccc")
-    with open(f"{tmp_dir_name}/3.txt", 'w') as f:
-        f.write("ddd")
-
-def clear_tmp_dir(path_to_dir: str) -> None:
-    tmp_dir_name = f"{path_to_dir}/tmp"
-    system(f"rm -r {tmp_dir_name}")
-
-def clear_env_vars():
-    system(f"unset TARGET_DIR_PATH")
-    system(f"unset PERIODE")
+from test_lib import create_tmp_dir, change_tmp_dir, clear_tmp_dir, clear_env_vars, syslog_file_path
 
 def test_integrity_check_err():
     test_time = 10
@@ -231,6 +201,66 @@ def test_bad_target_dir():
     file_content = fd.read().split("\n")
     for line in file_content:
         if "[err] target directory doesn't exist" in line:
+            check_result = True
+            fd.close()
+            break
+
+    clear_tmp_dir(current_directory)
+
+    assert check_result
+
+def test_check_demon_exit():
+    test_time = 10
+    current_file = os.path.realpath(__file__)
+    current_directory = os.path.dirname(current_file)
+
+    clear_env_vars()
+    create_tmp_dir(current_directory)
+
+    fd = open(syslog_file_path, "r")
+    fd.seek(0, 2) # Go to the end of the file
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp"]) as proc:
+        try:
+            proc.wait(test_time+ 5)
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+            proc.wait()
+    
+    check_result = False
+    file_content = fd.read().split("\n")
+    for line in file_content:
+        if "[inf] demon stop" in line:
+            check_result = True
+            fd.close()
+            break
+
+    clear_tmp_dir(current_directory)
+
+    assert check_result
+
+def test_sigusr1_signal():
+    test_time = 1000
+    current_file = os.path.realpath(__file__)
+    current_directory = os.path.dirname(current_file)
+
+    clear_env_vars()
+    create_tmp_dir(current_directory)
+
+    fd = open(syslog_file_path, "r")
+    fd.seek(0, 2) # Go to the end of the file
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp"]) as proc:
+        try:
+            sleep(10)
+            proc.send_signal(10)
+            proc.wait(10)
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+            proc.wait()
+    
+    check_result = False
+    file_content = fd.read().split("\n")
+    for line in file_content:
+        if "integrity check: OK" in line:
             check_result = True
             fd.close()
             break

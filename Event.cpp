@@ -62,7 +62,9 @@ void RmFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sum
 }
 
 void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums) {
+    //TODO: delete on release
     std::cout << "check file event" << std::endl;
+
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
     unsigned int crc_sum = ChecSum(path_to_file.c_str());
     if (crc_sum != (*crc_sums)[path_to_file]) {
@@ -78,5 +80,10 @@ void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_
 }
 
 void ExitEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums) {
+    //TODO: delete on release
     std::cout << "exit event" << std::endl;
+
+    openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+    syslog(LOG_INFO, "[inf] demon stop\n");
+    closelog();
 }

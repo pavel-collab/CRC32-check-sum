@@ -183,5 +183,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    pthread_join(demon_thread, NULL);
+
     return 0;
 }
