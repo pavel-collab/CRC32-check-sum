@@ -39,7 +39,7 @@ void CheckSumEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_s
 
     if (integrity_check) {
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
-        syslog(LOG_INFO, "[err] integrity check: OK\n");
+        syslog(LOG_INFO, "integrity check: OK\n");
         closelog();
     }
 }
@@ -72,7 +72,7 @@ void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_
         (*crc_sums)[path_to_file] = crc_sum;
     } else {
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
-        syslog(LOG_INFO, "[err] integrity check: OK\n");
+        syslog(LOG_INFO, "integrity check: OK\n");
         closelog();
     }
 }
