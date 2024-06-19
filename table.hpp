@@ -4,8 +4,6 @@
 #include <vector>
 #include <string>
 
-#include "directory.hpp"
-
 static const unsigned int Crc32Table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
     0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,

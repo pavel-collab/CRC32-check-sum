@@ -9,13 +9,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <dirent.h>
+#include <syslog.h>
 
 #include <vector>
 #include <string>
 #include <filesystem>
 
 #include "table.hpp"
-#include "crc32.hpp"
 
 unsigned int Crc32(const unsigned char* buf, unsigned len) {
     unsigned int crc = 0xFFFFFFFF;
@@ -24,34 +24,21 @@ unsigned int Crc32(const unsigned char* buf, unsigned len) {
     return crc ^ 0xFFFFFFFF;
 }
 
-void GetFileInfo(const char* filename,  struct stat *sb) {
-    if (lstat(filename, sb) == -1) {
-        fprintf(stderr, "lstat problem with file %s\n", filename);
-        return;
-    }
-
-    // спомощью stat проверяем тип файла
-    if ((sb->st_mode & S_IFMT) != S_IFREG) {
-        puts("[err] Sorry, I can't proces this type of file this moment(");
-        return;
-    }
-}
-
 int ChecSum(const char* filename) {
-    struct stat sb;
-    GetFileInfo(filename, &sb);
+    struct stat st;
+    stat(filename, &st);
+    long long file_size = (long long) st.st_size;
 
-    // аллоцирем буфер для чтения
     unsigned char* buf = (unsigned char*) calloc(max_len, sizeof(char));
-    assert(buf != NULL);
-
-    long long file_size = (long long) sb.st_size;
 
     //? что буедет, если во время подсчета контрольной суммы файл попробуют изменить?
     // флаг __O_NOATIME используется, чтобы при открытии файла время доступа к нему не менялось
     int file = open(filename, O_RDONLY | __O_NOATIME);
     if (file < 0) {
-        perror("Failed for open copy file for writing");
+        //TODO: check the function return code
+        openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+        syslog(LOG_INFO, "[err] unable to open file %s\n", filename);
+        closelog();
         return -1;
     }
 
@@ -61,7 +48,10 @@ int ChecSum(const char* filename) {
         ssize_t read_symb_amount = read(file, buf, max_len);
 
         if (read_symb_amount < 0) {
-            perror("Failed read from the file");
+            //TODO: check the function return code
+            openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+            syslog(LOG_INFO, "[err] unable to read file %s\n", filename);
+            closelog();
             close(file);
             return -1;
         }
@@ -77,14 +67,17 @@ int ChecSum(const char* filename) {
 
 
 int filter(const struct dirent *name) {
-  return 1;
+    return 1;
 }
 
 void GetObjectList(const char* path_to_directory, std::vector<std::string>* file_list) {
     struct dirent **namelist;
     int n = scandir(path_to_directory, &namelist, filter, alphasort);
     if (n == -1) {
-        perror("scandir");
+        //TODO: change the exit to the return code and check this code
+        openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+        syslog(LOG_INFO, "[err] unable to scan directory %s\n", path_to_directory);
+        closelog();
         exit(EXIT_FAILURE);
     }
 

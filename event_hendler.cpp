@@ -11,7 +11,6 @@
 #include <iostream>
 
 #include "table.hpp"
-#include "directory.hpp"
 #include "crc32.hpp"
 #include "Demon.hpp"
 #include "event_handler.hpp"
