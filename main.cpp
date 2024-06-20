@@ -1,22 +1,21 @@
-#include <stdio.h>
+// #include <stdio.h>
+// #include <unistd.h>
+// #include <sys/types.h>
+// #include <sys/stat.h>
+// #include <fcntl.h>
+// #include <stdlib.h>
+// #include <assert.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#include <sched.h>
-#include <poll.h>
-#include <sys/inotify.h>
-#include <pthread.h>
+// #include <stdio.h>
+// #include <signal.h>
+// #include <string.h>
+// #include <sched.h>
+// #include <poll.h>
+// #include <sys/inotify.h>
+// #include <pthread.h>
 #include <getopt.h>
-#include <getopt.h>
-#include <limits.h>
-#include <sys/types.h>
+// #include <limits.h>
+// #include <sys/types.h>
 #include <syslog.h>
 
 #include <unordered_map>
@@ -36,6 +35,7 @@ namespace {
 
 static char *path_to_directory = NULL;
 int periode = 0;
+int demon = 1;
 
 void signal_handler(int signal) {
     gSignalStatus = signal;
@@ -52,7 +52,10 @@ static void show_help() {
             "\tPath to the directory demon look after\n"
             "\n"
             "--periode, -p\n"
-            "\tPeriode in sec for the demon\n");
+            "\tPeriode in sec for the demon\n"
+            "\n"
+            "--test, -t\n"
+            "\tSet only for pytests to not to fork child proces\n");
 }
 
 static void parse_args (int argc, char **argv) {
@@ -62,6 +65,7 @@ static void parse_args (int argc, char **argv) {
         {"help", no_argument, NULL, 'h'},
         {"directory", required_argument, NULL, 'd'},
         {"periode", required_argument, NULL, 'p'},
+        {"test", no_argument, NULL, 't'},
         {NULL, 0, NULL, 0}
     };
 
@@ -79,6 +83,10 @@ static void parse_args (int argc, char **argv) {
             }
             case 'p': {
                 periode = atoi(optarg);
+                break;
+            }
+            case 't': {
+                demon = 0;
                 break;
             }
         }
@@ -128,6 +136,19 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    if (demon) {
+        pid_t parpid;
+        if((parpid=fork())<0) {  
+            printf("\ncan't fork"); 
+            exit(1);                
+        }
+        else if (parpid != 0) {
+            printf("Parent procwith pid %d\n", getpid());
+            exit(0);
+        }       
+        setsid();           //--перевод нашего дочернего процесса в новую сесию
+    }
+
     std::signal(SIGUSR1, signal_handler);
     std::signal(SIGALRM, signal_handler);
 
@@ -148,7 +169,6 @@ int main(int argc, char* argv[]) {
     // create and run thread for inotify
     pthread_t inotify_thread;
     if (errno = pthread_create(&inotify_thread, NULL, threadInotifyRun, new_demon)) {
-        //? error to syslog or to stderr
         perror("pthread_create");
         return -1;
     }
@@ -156,7 +176,6 @@ int main(int argc, char* argv[]) {
     // create and run thread for demon
     pthread_t demon_thread;
     if (errno = pthread_create(&demon_thread, NULL, threadDemonRun, new_demon)) {
-        //? error to syslog or to stderr
         perror("pthread_create");
         return -1;
     }

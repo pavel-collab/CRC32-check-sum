@@ -11,7 +11,7 @@ def test_check_json_log_creation():
 
     test_lib.create_tmp_dir(current_directory)
 
-    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}", "--t"]) as proc:
         try:
             proc.wait(test_time+ 5)
         except subprocess.TimeoutExpired:
@@ -34,7 +34,7 @@ def test_integrity_check_err():
     
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}", "--t"]) as proc:
         try:
             test_lib.change_tmp_dir(current_directory)
             proc.wait(test_time + 5)
@@ -68,7 +68,7 @@ def test_integrity_check_ok():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}", "--t"]) as proc:
         try:
             proc.wait(test_time+ 5)
         except subprocess.TimeoutExpired:
@@ -102,7 +102,7 @@ def test_no_target_dir():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--t"]) as proc:
         try:
             proc.wait(test_time+ 5)
         except subprocess.TimeoutExpired:
@@ -132,7 +132,7 @@ def test_negativ_period():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", "-2"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", "-2", "--t"]) as proc:
         try:
             proc.wait(test_time + 5)
         except subprocess.TimeoutExpired:
@@ -162,7 +162,7 @@ def test_check_sum_message():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--d", f"{current_directory}/tmp", "--p", f"{test_time}", "--t"]) as proc:
         try:
             proc.wait(test_time + 5)
         except subprocess.TimeoutExpired:
@@ -196,7 +196,7 @@ def test_bad_target_dir():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp2"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp2", "--t"]) as proc:
         try:
             proc.wait(test_time+ 5)
         except subprocess.TimeoutExpired:
@@ -226,7 +226,7 @@ def test_check_demon_exit():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp", "--t"]) as proc:
         try:
             proc.wait(test_time+ 5)
         except subprocess.TimeoutExpired:
@@ -256,7 +256,7 @@ def test_sigusr1_signal():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp", "--t"]) as proc:
         try:
             sleep(10)
             proc.send_signal(10)

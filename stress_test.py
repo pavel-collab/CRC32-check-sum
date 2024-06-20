@@ -55,7 +55,7 @@ def test_stress():
 
     fd = open(test_lib.syslog_file_path, "r")
     fd.seek(0, 2) # Go to the end of the file
-    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp"]) as proc:
+    with subprocess.Popen([f"{current_directory}/build/main", "--p", f"{test_time}", "--d", f"{current_directory}/tmp", "--t"]) as proc:
         try:
             signal_thread = threading.Thread(target=threa_signal_function, args=(proc.pid,), daemon=True)
             change_dir_thread = threading.Thread(target=thread_change_dir_function, args=(f"{current_directory}/tmp",), daemon=True)

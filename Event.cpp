@@ -9,9 +9,6 @@
 #include "DumpMessage.hpp"
 
 void CrcInitializeEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "initial event" << std::endl;
-
     std::vector<std::string> file_list;
     GetObjectList(this->path_to_dir_.c_str(), &file_list);
     // если в момент расчета затригериться событие проверки, это не нарушит целостности мапы, так как события складываются в очередь
@@ -23,9 +20,6 @@ void CrcInitializeEvent::Handler(std::unordered_map<std::string, unsigned int>* 
 }
 
 void CheckSumEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "check sum event" << std::endl;
-    
     bool integrity_check = true;
     for (auto &file : *crc_sums) {
         unsigned int crc_sum = ChecSum(file.first.c_str());
@@ -52,9 +46,6 @@ void CheckSumEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_s
 }
 
 void AddFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "add file event" << std::endl;
-
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
     unsigned int crc_check_sum = ChecSum(path_to_file.c_str());
     (*crc_sums)[path_to_file] = crc_check_sum;
@@ -64,9 +55,6 @@ void AddFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_su
 }
 
 void RmFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "remove event" << std::endl;
-
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
     crc_sums->erase(path_to_file);
 
@@ -75,9 +63,6 @@ void RmFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sum
 }
 
 void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "check file event" << std::endl;
-
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
     unsigned int crc_sum = ChecSum(path_to_file.c_str());
     if (crc_sum != (*crc_sums)[path_to_file]) {
@@ -100,9 +85,6 @@ void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_
 }
 
 void ExitEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
-    //TODO: delete on release
-    std::cout << "exit event" << std::endl;
-
     openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
     syslog(LOG_INFO, "[inf] demon stop\n");
     closelog();

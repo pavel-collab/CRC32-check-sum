@@ -9,12 +9,23 @@
 
 enum class EventId {CrcInitialize, CheckSum, AddFile, RmFile, CheckFile, Exit};
 
+/**
+ * \brief 
+ *
+ * 
+ */
 class Event {
 protected:
     std::string path_to_dir_;
 public:
     Event(std::string path_to_dir): path_to_dir_(path_to_dir) {};
     EventId eventId;
+
+    /**
+   * 
+   * @param 
+   */
+
     virtual void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) = 0;
     virtual ~Event() {};
 };

@@ -1,11 +1,11 @@
 #include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
+// #include <stdio.h>
+// #include <errno.h>
 #include <sys/inotify.h>
 #include <poll.h>
-#include <string.h>
-#include <sys/types.h>
-#include <signal.h>
+// #include <string.h>
+// #include <sys/types.h>
+// #include <signal.h>
 
 #include <algorithm>
 #include <iostream>
