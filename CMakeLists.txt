@@ -5,21 +5,24 @@ project ("Crc32_demon" LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 
 # EXECUTABLE FILE PROPERTIES
-set(MAIN "main")
-
-# SRC FILES
-set(SRC_MAIN main.cpp)
-set(SRC_CRC crc32.cpp)
-set(SRC_EVENT_HANDLER event_hendler.cpp)
-set(SRC_DEMON Demon.cpp)
-set(SRC_EVENT Event.cpp)
-set(SRC_MESSAGE DumpMessage.cpp)
+set(EXEC_FILE "main")
+set(INCLUDE_DEMON include/Demon.hpp)
+set(SOURCES 
+    src/main.cpp
+    src/crc32.cpp
+    src/event_hendler.cpp
+    src/Demon.cpp
+    src/Event.cpp
+    src/DumpMessage.cpp
+)
 
 # EXECUTABLES
-add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER} ${SRC_DEMON} ${SRC_EVENT} ${SRC_MESSAGE})
+add_executable(${EXEC_FILE} ${SOURCES})
 
 # TARGETS LINK LIBRARIES
-target_link_libraries(${MAIN} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
+target_link_libraries(${EXEC_FILE} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
+
+target_include_directories (${EXEC_FILE} PRIVATE include)
 
 add_compile_options(
     -g
