@@ -84,11 +84,9 @@ static void parse_args(int argc, char **argv) {
 int main(int argc, char* argv[]) {
 
     /*
-    Parsing program arguments. By default program use enviroment args: TARGET_DIR_PATH, PERIODE.
-    If some of this enviroment args is not set, program use command line arguments.
+    Parsing program arguments. By default program use command line arguments.
+    If some of this args is not set, program use enviroment args: TARGET_DIR_PATH, PERIODE.
     */
-    parse_args(argc, argv);
-
     char* TARGET_DIR_PATH = getenv("TARGET_DIR_PATH");
     char* PERIODE = getenv("PERIODE");
 
@@ -99,6 +97,8 @@ int main(int argc, char* argv[]) {
     if (PERIODE != NULL) {
         periode = atoi(PERIODE);
     }
+
+    parse_args(argc, argv);
 
     if (periode <= 0) {
         //? move this 3 calls to one function
