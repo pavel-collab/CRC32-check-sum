@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <string>
 
+#include "DumpMessage.hpp"
+
 enum class EventId {CrcInitialize, CheckSum, AddFile, RmFile, CheckFile, Exit};
 
 class Event {
@@ -13,7 +15,7 @@ protected:
 public:
     Event(std::string path_to_dir): path_to_dir_(path_to_dir) {};
     EventId eventId;
-    virtual void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) = 0;
+    virtual void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) = 0;
     virtual ~Event() {};
 };
 
@@ -23,7 +25,7 @@ public:
         eventId = EventId::CheckSum;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~CrcInitializeEvent() {};
 };
 
@@ -34,7 +36,7 @@ public:
         eventId = EventId::CheckSum;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~CheckSumEvent() {};
 };
 
@@ -45,7 +47,7 @@ public:
         eventId = EventId::AddFile;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~AddFileEvent() {};
 };
 
@@ -56,7 +58,7 @@ public:
         eventId = EventId::RmFile;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~RmFileEvent() {};
 };
 
@@ -67,7 +69,7 @@ public:
         eventId = EventId::CheckFile;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~CheckFileEvent() {};
 };
 
@@ -77,7 +79,7 @@ public:
         eventId = EventId::Exit;
     };
 
-    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums) override;
+    void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) override;
     ~ExitEvent() {};
 };
 

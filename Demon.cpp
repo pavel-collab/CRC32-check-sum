@@ -1,5 +1,9 @@
+#include <syslog.h>
+
 #include "Demon.hpp"
 #include "Event.hpp"
+
+#include <fstream>
 
 Demon* Demon::demon_instance = nullptr;
 DemonDestroyer Demon::destroyer;
@@ -32,11 +36,12 @@ void Demon::startMainLoop() {
             pthread_mutex_unlock(&this->mutex);
 
             if (new_event->eventId == EventId::Exit) {
-                new_event->Handler(&this->crc_sums);
+                DumpJsonLog();
+                new_event->Handler(&this->crc_sums, &this->message_vector);
                 break;
             }
 
-            new_event->Handler(&this->crc_sums);
+            new_event->Handler(&this->crc_sums, &this->message_vector);
         }
     }
 }
@@ -45,4 +50,17 @@ void Demon::addEvent(Event* event) {
     pthread_mutex_lock(&this->mutex);
     this->event_queue_.push(event);
     pthread_mutex_unlock(&this->mutex);
+}
+
+void Demon::DumpJsonLog() {
+    json general_json_obj(this->message_vector);
+    std::ofstream json_log_file(path_to_json_log_);
+    if (json_log_file.is_open()) {
+        json_log_file << general_json_obj.dump();
+        json_log_file.close();
+    } else {
+        openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+        syslog(LOG_INFO, "[err] unable to dump long info into json file\n");
+        closelog();
+    }
 }

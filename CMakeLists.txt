@@ -13,9 +13,10 @@ set(SRC_CRC crc32.cpp)
 set(SRC_EVENT_HANDLER event_hendler.cpp)
 set(SRC_DEMON Demon.cpp)
 set(SRC_EVENT Event.cpp)
+set(SRC_MESSAGE DumpMessage.cpp)
 
 # EXECUTABLES
-add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER} ${SRC_DEMON} ${SRC_EVENT})
+add_executable(${MAIN} ${SRC_MAIN} ${SRC_CRC} ${SRC_EVENT_HANDLER} ${SRC_DEMON} ${SRC_EVENT} ${SRC_MESSAGE})
 
 # TARGETS LINK LIBRARIES
 target_link_libraries(${MAIN} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
