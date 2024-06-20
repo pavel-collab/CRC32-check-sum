@@ -1,21 +1,5 @@
-// #include <stdio.h>
-// #include <unistd.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// #include <stdlib.h>
-// #include <assert.h>
 #include <unistd.h>
-// #include <stdio.h>
-// #include <signal.h>
-// #include <string.h>
-// #include <sched.h>
-// #include <poll.h>
-// #include <sys/inotify.h>
-// #include <pthread.h>
 #include <getopt.h>
-// #include <limits.h>
-// #include <sys/types.h>
 #include <syslog.h>
 
 #include <unordered_map>
