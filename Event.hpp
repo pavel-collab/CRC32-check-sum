@@ -10,9 +10,10 @@
 enum class EventId {CrcInitialize, CheckSum, AddFile, RmFile, CheckFile, Exit};
 
 /**
- * \brief 
+ * \brief Interface class for the event in the system.
  *
- * 
+ * This class describe the interface for the event, that demon have to monitor.
+ * Object of Event incapsulate path to the directory that demon monitors.
  */
 class Event {
 protected:
@@ -22,14 +23,21 @@ public:
     EventId eventId;
 
     /**
-   * 
-   * @param 
+   * This is a virtual method that each type of Event has to have.
+   * Method describe actions that have to be executen when the event happens.
+   * @param crc_sums -- hash table of the files in the derictory with their crc32 check sums.
+   * @param message_vector -- vector of the json objects needs to save history of events in json format.
    */
-
     virtual void Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) = 0;
     virtual ~Event() {};
 };
 
+/**
+ * \brief Initial event.
+ * 
+ * This type of event generates when demon is started.
+ * CrcInitializeEvent triggers demon to scan files in directory, calculate it's crc check sums and save it.
+ */
 class CrcInitializeEvent final: public Event {
 public:
     CrcInitializeEvent(std::string path_to_dir): Event(path_to_dir) {
@@ -40,7 +48,9 @@ public:
     ~CrcInitializeEvent() {};
 };
 
-
+/**
+ * \brief Event that triggers demon to check crc32 sums for all of the files in the directory.
+ */
 class CheckSumEvent final: public Event {
 public:
     CheckSumEvent(std::string path_to_dir): Event(path_to_dir) {
@@ -51,6 +61,9 @@ public:
     ~CheckSumEvent() {};
 };
 
+/**
+ * \brief Event that generated when new file is created in the directory. Triggers demon to calculate and save crc32 sum for the new file.
+ */
 class AddFileEvent final: public Event {
     std::string file_name_;
 public:
@@ -62,6 +75,9 @@ public:
     ~AddFileEvent() {};
 };
 
+/**
+ * \brief Event that generated when some file is removed from the directory. Triggers the demon to erase information about this file.
+ */
 class RmFileEvent final: public Event {
     std::string file_name_;
 public:
@@ -73,6 +89,9 @@ public:
     ~RmFileEvent() {};
 };
 
+/**
+ * \brief Event that generated when some file is modified. Triggers demon to check crc32 check sum for this file.
+ */
 class CheckFileEvent final: public Event {
     std::string file_name_;
 public:
@@ -84,6 +103,9 @@ public:
     ~CheckFileEvent() {};
 };
 
+/**
+ * \brief Event that generated when system catch the signal to stop demon. Trigges demon to finish his proces.
+ */
 class ExitEvent final: public Event {
 public:
     ExitEvent(std::string path_to_dir): Event(path_to_dir) {

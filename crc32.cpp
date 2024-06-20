@@ -19,6 +19,8 @@ unsigned int Crc32(const unsigned char* buf, unsigned len) {
     return crc ^ 0xFFFFFFFF;
 }
 
+//TODO int -> unsigned int
+//TODO: Checksum -> CalculateCrc32
 int ChecSum(const char* filename) {
     struct stat st;
     stat(filename, &st);
