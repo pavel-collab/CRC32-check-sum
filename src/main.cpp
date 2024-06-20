@@ -12,6 +12,7 @@
 #include "crc32.hpp"
 #include "event_handler.hpp"
 #include "table.hpp"
+#include "syslogDump.hpp"
 
 namespace {
 // var for custom signal handler
@@ -100,32 +101,22 @@ int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
   if (periode <= 0) {
-    //? move this 3 calls to one function
-    openlog("CRC32 daemonn", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO,
-           "[err] periode can't be less or equal 0, but actual periode is %d\n",
-           periode);
-    closelog();
+    SYSLOG_DUMP("[err] periode can't be less or equal 0, but actual periode is %d\n",
+                periode);
     return -1;
   }
 
   if (path_to_directory == NULL) {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "[err] path to the directory is no set\n");
-    closelog();
+    SYSLOG_DUMP("[err] path to the directory is no set\n");
     return -1;
   }
 
   path_to_directory = realpath(path_to_directory, NULL);
   if (path_to_directory == NULL) {
     if (errno == ENOENT) {
-      openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-      syslog(LOG_INFO, "[err] target directory doesn't exist\n");
-      closelog();
+      SYSLOG_DUMP("[err] target directory doesn't exist\n");
     } else {
-      openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-      syslog(LOG_INFO, "[err] unexpected problem with target directory\n");
-      closelog();
+      SYSLOG_DUMP("[err] unexpected problem with target directory\n");
     }
     return -1;
   }
@@ -181,19 +172,12 @@ int main(int argc, char *argv[]) {
   // waiting for the some signal
   while (1) {
     sleep(1);
-    if (gSignalStatus == SIGUSR1) {
+    
+    if (gSignalStatus == SIGUSR1 || gSignalStatus == SIGALRM) {
       Event *new_event_ptr = new CheckSumEvent(path_to_directory);
       new_daemon->addEvent(new_event_ptr);
       gSignalStatus = -1;
-    }
-
-    if (gSignalStatus == SIGALRM) {
-      Event *new_event_ptr = new CheckSumEvent(path_to_directory);
-      new_daemon->addEvent(new_event_ptr);
-      gSignalStatus = -1;
-    }
-
-    if (gSignalStatus == SIGTERM) {
+    } else if (gSignalStatus == SIGTERM) {
       Event *new_event_ptr = new ExitEvent(path_to_directory);
       new_daemon->addEvent(new_event_ptr);
       gSignalStatus = -1;

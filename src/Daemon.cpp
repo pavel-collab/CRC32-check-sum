@@ -1,7 +1,10 @@
 #include <syslog.h>
 
+#include <stdexcept>
+
 #include "Daemon.hpp"
 #include "Event.hpp"
+#include "syslogDump.hpp"
 
 #include <fstream>
 
@@ -25,23 +28,28 @@ void Daemon::startMainLoop() {
   addEvent(start_event);
 
   while (1) {
-    if (!event_queue_.empty()) {
-      // as main proces and inotify thread are able to out events into the
-      // queue, all actions with queue must executed under mutex
-      pthread_mutex_lock(&mutex_);
-      // give the next event from the queue
-      Event *new_event = event_queue_.front();
-      event_queue_.pop();
-      pthread_mutex_unlock(&mutex_);
+    try {
+      if (!event_queue_.empty()) {
+        // as main proces and inotify thread are able to out events into the
+        // queue, all actions with queue must executed under mutex
+        pthread_mutex_lock(&mutex_);
+        // give the next event from the queue
+        Event *new_event = event_queue_.front();
+        event_queue_.pop();
+        pthread_mutex_unlock(&mutex_);
 
-      if (new_event->eventId == EventId::Exit) {
-        dumpJsonLog();
+        if (new_event->eventId == EventId::Exit) {
+          dumpJsonLog();
+          new_event->Handler(&crc_sums_, &message_vector_);
+          break;
+        }
+
+        // execute logic, triggered by this event
         new_event->Handler(&crc_sums_, &message_vector_);
-        break;
       }
-
-      // execute logic, triggered by this event
-      new_event->Handler(&crc_sums_, &message_vector_);
+    } catch (const std::runtime_error& error) {
+      dumpJsonLog();
+      break;
     }
   }
 }
@@ -59,9 +67,7 @@ void Daemon::dumpJsonLog() {
     json_log_file << general_json_obj.dump();
     json_log_file.close();
   } else {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "[err] unable to dump long info into json file\n");
-    closelog();
+    SYSLOG_DUMP("[err] unable to dump long info into json file\n");
   }
 }
 

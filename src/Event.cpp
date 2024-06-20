@@ -7,6 +7,7 @@
 #include "DumpMessage.hpp"
 #include "Event.hpp"
 #include "crc32.hpp"
+#include "syslogDump.hpp"
 
 void CrcInitializeEvent::Handler(
     std::unordered_map<std::string, unsigned int> *crc_sums,
@@ -37,12 +38,9 @@ void CheckSumEvent::Handler(
 
     if (crc_sum != file.second) {
       // write message into sysloh
-      openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-      syslog(LOG_INFO,
-             "[err] integrity check: FAIL (file: %s -- expected 0x%08x, but "
-             "got 0x%08x)\n",
-             file.first.c_str(), file.second, crc_sum);
-      closelog();
+      SYSLOG_DUMP("[err] integrity check: FAIL (file: %s -- expected 0x%08x, but "
+                  "got 0x%08x)\n",
+                  file.first.c_str(), file.second, crc_sum);
 
       // generate message for json log
       DumpMessage *new_message =
@@ -60,9 +58,7 @@ void CheckSumEvent::Handler(
   }
 
   if (integrity_check) {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "integrity check: OK\n");
-    closelog();
+    SYSLOG_DUMP("integrity check: OK\n");
   }
 }
 
@@ -94,12 +90,9 @@ void CheckFileEvent::Handler(
   unsigned int crc_sum = CalculateCrc32(path_to_file.c_str());
 
   if (crc_sum != (*crc_sums)[path_to_file]) {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO,
-           "[err] integrity check: FAIL (file: %s -- expected 0x%08x, but got "
-           "0x%08x)\n",
-           path_to_file.c_str(), (*crc_sums)[path_to_file], crc_sum);
-    closelog();
+    SYSLOG_DUMP("[err] integrity check: FAIL (file: %s -- expected 0x%08x, but "
+                "got %#08x)\n",
+                path_to_file.c_str(), (*crc_sums)[path_to_file], crc_sum);
 
     DumpMessage *new_message =
         new MessageFail{path_to_file, (*crc_sums)[path_to_file], crc_sum};
@@ -107,9 +100,7 @@ void CheckFileEvent::Handler(
 
     (*crc_sums)[path_to_file] = crc_sum;
   } else {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "integrity check: OK\n");
-    closelog();
+    SYSLOG_DUMP("integrity check: OK\n");
 
     DumpMessage *new_message =
         new MessageOK(path_to_file, (*crc_sums)[path_to_file], crc_sum);
@@ -119,7 +110,5 @@ void CheckFileEvent::Handler(
 
 void ExitEvent::Handler(std::unordered_map<std::string, unsigned int> *crc_sums,
                         std::vector<json> *message_vector) {
-  openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-  syslog(LOG_INFO, "[inf] daemon stop\n");
-  closelog();
+  SYSLOG_DUMP("[inf] daemon stop\n");
 }

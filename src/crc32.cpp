@@ -9,8 +9,10 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 #include "table.hpp"
+#include "syslogDump.hpp"
 
 /**
  * Function calculates crc32 using data from given buffer
@@ -35,10 +37,8 @@ unsigned int CalculateCrc32(const char *filename) {
   // __O_NOATIME Do not update the file last access time (see man 2 open)
   int file = open(filename, O_RDONLY | __O_NOATIME);
   if (file < 0) {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "[err] unable to open file %s\n", filename);
-    closelog();
-    exit(EXIT_FAILURE);
+    SYSLOG_DUMP("[err] unable to open file %s\n", filename);
+    throw std::runtime_error("unable to open file");
   }
 
   unsigned int check_sum = 0;
@@ -47,11 +47,9 @@ unsigned int CalculateCrc32(const char *filename) {
     ssize_t read_symb_amount = read(file, buf, max_len);
 
     if (read_symb_amount < 0) {
-      openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-      syslog(LOG_INFO, "[err] unable to read file %s\n", filename);
-      closelog();
+      SYSLOG_DUMP("[err] unable to open file %s\n", filename);
       close(file);
-      exit(EXIT_FAILURE);
+      throw std::runtime_error("unable to open file");
     }
 
     file_size -= read_symb_amount;
@@ -70,10 +68,8 @@ void GetObjectList(const char *path_to_directory,
   struct dirent **namelist;
   int n = scandir(path_to_directory, &namelist, filter, alphasort);
   if (n == -1) {
-    openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
-    syslog(LOG_INFO, "[err] unable to scan directory %s\n", path_to_directory);
-    closelog();
-    exit(EXIT_FAILURE);
+    SYSLOG_DUMP("[err] unable to scan directory %s\n", path_to_directory);
+    throw std::runtime_error("unable to scan directory");
   }
 
   while (n--) {
