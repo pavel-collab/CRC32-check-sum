@@ -23,6 +23,7 @@ add_executable(${EXEC_FILE} ${SOURCES})
 target_link_libraries(${EXEC_FILE} "dl" "pthread" "m"    ${CMAKE_DL_LIBS})
 
 target_include_directories (${EXEC_FILE} PRIVATE include)
+target_include_directories (${EXEC_FILE} PRIVATE ${CMAKE_SOURCE_DIR})
 
 add_compile_options(
     -g

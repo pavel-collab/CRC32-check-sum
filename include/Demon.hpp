@@ -5,8 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-//TODO: how I can do it in CMake file
-#include "../json/single_include/nlohmann/json.hpp"
+#include "json/single_include/nlohmann/json.hpp"
 
 using json = nlohmann::json;
 
