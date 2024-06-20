@@ -5,9 +5,14 @@ import string
 from time import sleep
 import json
 
-syslog_file_path = "/var/log/syslog"
-json_file_path = "/tmp/log.json"
+'''
+In this file you can find some auxiliary functions for the python tests.
+'''
 
+syslog_file_path = "/var/log/syslog" # path to the syslog (Linux Ubuntu)
+json_file_path = "/tmp/log.json" # default path to the json log file
+
+# create temporary directory, that will be target for demon in test
 def create_tmp_dir(path_to_dir: str) -> None:
     tmp_dir_name = f"{path_to_dir}/tmp"
     
@@ -20,6 +25,7 @@ def create_tmp_dir(path_to_dir: str) -> None:
     with open(f"{tmp_dir_name}/2.txt", 'w') as f:
         f.write("bbb")
 
+# do some manipulations with temp target directory
 def change_tmp_dir(path_to_dir: str) -> None:
     tmp_dir_name = f"{path_to_dir}/tmp"
 
@@ -33,6 +39,7 @@ def change_tmp_dir(path_to_dir: str) -> None:
     with open(f"{tmp_dir_name}/3.txt", 'w') as f:
         f.write("ddd")
 
+# remove temp target directory after test
 def clear_tmp_dir(path_to_dir: str) -> None:
     tmp_dir_name = f"{path_to_dir}/tmp"
     system(f"rm -r {tmp_dir_name}")
@@ -41,13 +48,16 @@ def clear_env_vars():
     system(f"unset TARGET_DIR_PATH")
     system(f"unset PERIODE")
 
+# generate random word with set length
 def gen_rand_word(length: int):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
 
+# remove json log file after test
 def clear_json_log(json_log_path: str) -> None:
     system(f"rm -r {json_log_path}")
 
+# import information from json log file
 def parce_json(file_name: str):
     with open(file_name, 'r') as config_file:
         info = config_file.read()

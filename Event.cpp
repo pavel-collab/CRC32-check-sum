@@ -11,25 +11,35 @@
 void CrcInitializeEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
     std::vector<std::string> file_list;
     GetObjectList(this->path_to_dir_.c_str(), &file_list);
-    // если в момент расчета затригериться событие проверки, это не нарушит целостности мапы, так как события складываются в очередь
+    // if during the crc32 calculating check sum signal will be caught, it will not destroy map, because all of the event are put into queue, and access to the queue is under the mutex
+    
     for (auto &file : file_list) {
+        // calculate and save crc32 for each file in target directory
+
         std::string path_to_file = this->path_to_dir_ + "/" + file;
-        unsigned int crc_check_sum = ChecSum(path_to_file.c_str());
+        unsigned int crc_check_sum = CalculateCrc32(path_to_file.c_str());
         (*crc_sums)[path_to_file] = crc_check_sum;
     }
 }
 
 void CheckSumEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
     bool integrity_check = true;
+
+    // check crc32 for all of the files
     for (auto &file : *crc_sums) {
-        unsigned int crc_sum = ChecSum(file.first.c_str());
+        unsigned int crc_sum = CalculateCrc32(file.first.c_str());
+
         if (crc_sum != file.second) {
+            // write message into sysloh
             openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
             syslog(LOG_INFO, "[err] integrity check: FAIL (file: %s -- expected 0x%08x, but got 0x%08x)\n", file.first.c_str(), file.second, crc_sum);
             closelog();
+
+            // generate message for json log
             DumpMessage* new_message = new MessageFail{file.first, file.second, crc_sum};
             message_vector->push_back(new_message->DumpToJsonObj());
 
+            // recalculate crc32 for this file!
             (*crc_sums)[file.first] = crc_sum;
             integrity_check = false;
         } else {
@@ -47,7 +57,7 @@ void CheckSumEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_s
 
 void AddFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
-    unsigned int crc_check_sum = ChecSum(path_to_file.c_str());
+    unsigned int crc_check_sum = CalculateCrc32(path_to_file.c_str());
     (*crc_sums)[path_to_file] = crc_check_sum;
 
     DumpMessage* new_message = new MessageNew{path_to_file};
@@ -64,7 +74,8 @@ void RmFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sum
 
 void CheckFileEvent::Handler(std::unordered_map<std::string, unsigned int>* crc_sums, std::vector<json>* message_vector) {
     std::string path_to_file = this->path_to_dir_ + "/" + this->file_name_;
-    unsigned int crc_sum = ChecSum(path_to_file.c_str());
+    unsigned int crc_sum = CalculateCrc32(path_to_file.c_str());
+    
     if (crc_sum != (*crc_sums)[path_to_file]) {
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] integrity check: FAIL (file: %s -- expected 0x%08x, but got 0x%08x)\n", path_to_file.c_str(), (*crc_sums)[path_to_file], crc_sum);

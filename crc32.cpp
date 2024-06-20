@@ -12,6 +12,11 @@
 
 #include "table.hpp"
 
+/**
+ * Function calculates crc32 using data from given buffer
+ * @param buf -- pointer to buffer with data
+ * @param len -- number of bytes in buffer
+ */
 unsigned int Crc32(const unsigned char* buf, unsigned len) {
     unsigned int crc = 0xFFFFFFFF;
     while (len--)
@@ -19,24 +24,21 @@ unsigned int Crc32(const unsigned char* buf, unsigned len) {
     return crc ^ 0xFFFFFFFF;
 }
 
-//TODO int -> unsigned int
-//TODO: Checksum -> CalculateCrc32
-int ChecSum(const char* filename) {
+unsigned int CalculateCrc32(const char* filename) {
+    // get the file size
     struct stat st;
     stat(filename, &st);
     long long file_size = (long long) st.st_size;
 
     unsigned char* buf = (unsigned char*) calloc(max_len, sizeof(char));
 
-    //? что буедет, если во время подсчета контрольной суммы файл попробуют изменить?
-    // флаг __O_NOATIME используется, чтобы при открытии файла время доступа к нему не менялось
+    // __O_NOATIME Do not update the file last access time (check man 2 open)
     int file = open(filename, O_RDONLY | __O_NOATIME);
     if (file < 0) {
-        //TODO: check the function return code
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] unable to open file %s\n", filename);
         closelog();
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     unsigned int check_sum = 0;
@@ -45,12 +47,11 @@ int ChecSum(const char* filename) {
         ssize_t read_symb_amount = read(file, buf, max_len);
 
         if (read_symb_amount < 0) {
-            //TODO: check the function return code
             openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
             syslog(LOG_INFO, "[err] unable to read file %s\n", filename);
             closelog();
             close(file);
-            return -1;
+            exit(EXIT_FAILURE);
         }
 
         file_size -= read_symb_amount;
@@ -71,7 +72,6 @@ void GetObjectList(const char* path_to_directory, std::vector<std::string>* file
     struct dirent **namelist;
     int n = scandir(path_to_directory, &namelist, filter, alphasort);
     if (n == -1) {
-        //TODO: change the exit to the return code and check this code
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] unable to scan directory %s\n", path_to_directory);
         closelog();

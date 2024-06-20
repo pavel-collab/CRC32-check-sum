@@ -25,12 +25,15 @@ Demon* Demon::getInstance(char* path_to_dir) {
 
 void Demon::startMainLoop() {
     
+    // firstly generate initial event, it trigges demon to save crc32 check sums for all of files in target dir
     Event* start_event = new CrcInitializeEvent{this->path_to_dir_};
     this->addEvent(start_event);
 
     while(1) {
         if (!this->event_queue_.empty()) {
+            // as main proces and inotify thread are able to out events into the queue, all actions with queue must executed under mutex
             pthread_mutex_lock(&this->mutex);
+            // give the next event from the queue
             Event* new_event = this->event_queue_.front();
             this->event_queue_.pop();
             pthread_mutex_unlock(&this->mutex);
@@ -41,6 +44,7 @@ void Demon::startMainLoop() {
                 break;
             }
 
+            // execute logic, triggered by this event
             new_event->Handler(&this->crc_sums, &this->message_vector);
         }
     }

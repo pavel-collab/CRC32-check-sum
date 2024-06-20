@@ -1,12 +1,11 @@
-#ifndef _LIB_H_
-//TODO: _LIB_H_ -> _CRC_32_H
-#define _LIB_H_
+#ifndef _CRC_32_H
+#define _CRC_32_H
 
 /**
  * Function calculates crc32 sum for given file.
  * @param filename -- name of the file
  */
-int ChecSum(const char* filename);
+unsigned int CalculateCrc32(const char* filename);
 
 /**
  * Function scan given directory and write names of files in this directory to the given vector.
@@ -15,4 +14,4 @@ int ChecSum(const char* filename);
  */
 void GetObjectList(const char* path_to_directory, std::vector<std::string>* file_list);
 
-#endif //_LIB_H_
+#endif //_CRC_32_H

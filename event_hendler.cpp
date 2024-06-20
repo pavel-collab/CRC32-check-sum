@@ -10,6 +10,13 @@
 #include "Demon.hpp"
 #include "event_handler.hpp"
 
+/**
+ * Function read caught inotify events and generate sutable Event objects.
+ * (man 7 inotify)
+ * 
+ * @param fd -- inotify file descriptor
+ * @param demon_ptr -- pointer to the demon object (we need it to put Event object in the event queue)
+ */
 void handle_events(int fd, Demon* demon_ptr) {
     char buf[4096];
     const struct inotify_event *event;
@@ -17,7 +24,10 @@ void handle_events(int fd, Demon* demon_ptr) {
     ssize_t len;
     char *ptr;
 
+    // Loop while events can be read from inotify file descriptor
     for (;;) {
+
+        // Read some events
         len = read(fd, buf, sizeof(buf));
         if (len == -1 && errno != EAGAIN) {
             perror("read");
@@ -27,6 +37,7 @@ void handle_events(int fd, Demon* demon_ptr) {
         if (len <= 0)
             break;
 
+        // Loop over all events in the buffer
         for (ptr = buf; ptr < buf + len; ptr += sizeof(struct inotify_event) + event->len) {
             event = (const struct inotify_event *) ptr;
 
@@ -51,6 +62,7 @@ void handle_events(int fd, Demon* demon_ptr) {
 void* threadInotifyRun(void* arg) {
     Demon* demon = (Demon*) arg;
 
+    // here we use poll to monitore inotify events (check man poll) 
     char buf;
     int fd, i, poll_num;
     int* wd;

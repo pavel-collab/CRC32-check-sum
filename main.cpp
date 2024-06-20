@@ -14,12 +14,14 @@
 #include "Event.hpp"
 
 namespace {
+    // var for custom signal handler
     volatile std::sig_atomic_t gSignalStatus;
 }
 
-static char *path_to_directory = NULL;
-int periode = 0;
-int demon = 1;
+static char *path_to_directory = NULL; ///< path to the target directory; demon looks after this dir
+int periode = 0; ///< periode of the automated check sum in seconds
+int demon = 1; ///< this flag needs for the pytest
+
 
 void signal_handler(int signal) {
     gSignalStatus = signal;
@@ -42,7 +44,10 @@ static void show_help() {
             "\tSet only for pytests to not to fork child proces\n");
 }
 
-static void parse_args (int argc, char **argv) {
+/**
+ * Parsing comand line arguments.
+ */
+static void parse_args(int argc, char **argv) {
     int res = 0, ind = 0;
     const char *short_opts = "hf:";
     const struct option long_opts[] = {
@@ -78,6 +83,10 @@ static void parse_args (int argc, char **argv) {
 
 int main(int argc, char* argv[]) {
 
+    /*
+    Parsing program arguments. By default program use enviroment args: TARGET_DIR_PATH, PERIODE.
+    If some of this enviroment args is not set, program use command line arguments.
+    */
     parse_args(argc, argv);
 
     char* TARGET_DIR_PATH = getenv("TARGET_DIR_PATH");
@@ -92,7 +101,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (periode <= 0) {
-        //? Можно ли вынести в отдельную функцию?
+        //? move this 3 calls to one function
         openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] periode can't be less or equal 0, but actual periode is %d\n", periode);
         closelog();
@@ -120,6 +129,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    // demon; fork the child proces and let the parent proces go
+    // (doesn't work in test mode)
     if (demon) {
         pid_t parpid;
         if((parpid=fork())<0) {  
@@ -130,16 +141,15 @@ int main(int argc, char* argv[]) {
             printf("Parent procwith pid %d\n", getpid());
             exit(0);
         }       
-        setsid();           //--перевод нашего дочернего процесса в новую сесию
+        setsid(); // switch child proc in new session
     }
 
-    std::signal(SIGUSR1, signal_handler);
-    std::signal(SIGALRM, signal_handler);
+    // signal handle
+    std::signal(SIGUSR1, signal_handler); // SIGUSR1 -- immediate check crc32 sums
+    std::signal(SIGALRM, signal_handler); // SIGALRM -- using alarm to check crc32 by timeout
+    std::signal(SIGTERM, signal_handler); // SIGTERM -- demon end of work
 
-    // сигнал для завершения работы демона
-    std::signal(SIGTERM, signal_handler);
-
-    // игнорируем эти сигналы
+    // ignore this signals
     std::signal(SIGQUIT, signal_handler);
     std::signal(SIGINT, signal_handler);
     std::signal(SIGHUP, signal_handler);
@@ -148,7 +158,7 @@ int main(int argc, char* argv[]) {
 
     alarm(periode);
 
-    Demon* new_demon = Demon::getInstance(path_to_directory);
+    Demon* new_demon = Demon::getInstance(path_to_directory); // create demon
 
     // create and run thread for inotify
     pthread_t inotify_thread;
@@ -164,6 +174,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    // waiting for the some signal
     while(1) {
         sleep(1);
         if (gSignalStatus == SIGUSR1) {

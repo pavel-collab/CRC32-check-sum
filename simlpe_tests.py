@@ -4,6 +4,10 @@ from time import sleep
 
 import test_lib
 
+'''
+In this file you can find small unit tests for some logic parts of demon code.
+'''
+
 def test_check_json_log_creation():
     test_time = 10
     current_file = os.path.realpath(__file__)
