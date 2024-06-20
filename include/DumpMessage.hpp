@@ -12,7 +12,7 @@ enum class MessageStatus {OK, FAIL, NEW, ABSENT};
 /**
  * \brief Interface for the message about events.
  * 
- * This is the interface for the message that contain brief information about events are monitored by demon.
+ * This is the interface for the message that contain brief information about events are monitored by Daemon.
  * There are 4 different messages: check file crc32 -- ok, check file crc32 -- fail, new file creation, file removing.
  * Such object is able to be interpete in json format. So, using this objects is a way to save event history in json format.
  */
@@ -26,19 +26,19 @@ protected:
    * This method represent the crc32 check sum in sutable format 0x00000000 to write it in json.
    * @param crc32 -- unsigned int number (crc32 file check sum)
    */
-    std::string FormatCRC32(unsigned int crc32);
+    std::string formatCRC32(unsigned int crc32);
 
     /**
    * This method returns string with current time. Time is also wrote into json log to analyse it more comfortable.
    */
-    std::string GetCurrentTimeUTC();
+    std::string getCurrentTimeUTC();
 public:
-    DumpMessage(std::string path_to_file): path_to_file_(path_to_file) {};
+    DumpMessage(std::string path_to_file): path_to_file_(path_to_file), time_(getCurrentTimeUTC()) {};
     
     /**
    * This method generates json object and write the information about some event into this object.
    */
-    virtual json DumpToJsonObj() = 0;
+    virtual json dumpToJsonObj() = 0;
     virtual ~DumpMessage() {};
 };
 
@@ -48,11 +48,10 @@ private:
     unsigned int result_crc_;
 public:
     MessageOK(std::string path_to_file, unsigned int etalon_crc, unsigned int result_crc): DumpMessage(path_to_file), etalon_crc_(etalon_crc), result_crc_(result_crc) {
-        this->status_ = MessageStatus::OK;
-        time_ = GetCurrentTimeUTC();
+        status_ = MessageStatus::OK;
     };
 
-    json DumpToJsonObj() override;
+    json dumpToJsonObj() override;
 };
 
 class MessageFail final: public DumpMessage {
@@ -61,31 +60,28 @@ private:
     unsigned int result_crc_;
 public:
     MessageFail(std::string path_to_file, unsigned int etalon_crc, unsigned int result_crc): DumpMessage(path_to_file), etalon_crc_(etalon_crc), result_crc_(result_crc) {
-        this->status_ = MessageStatus::FAIL;
-        time_ = GetCurrentTimeUTC();
+        status_ = MessageStatus::FAIL;
     };
 
-    json DumpToJsonObj() override;
+    json dumpToJsonObj() override;
 };
 
 class MessageNew final: public DumpMessage {
 public:
-    MessageNew(std::string path_to_file): DumpMessage(path_to_file){
-        this->status_ = MessageStatus::NEW;
-        time_ = GetCurrentTimeUTC();
+    MessageNew(std::string path_to_file): DumpMessage(path_to_file) {
+        status_ = MessageStatus::NEW;
     };
 
-    json DumpToJsonObj() override;
+    json dumpToJsonObj() override;
 };
 
 class MessageAbsent final: public DumpMessage {
 public:
-    MessageAbsent(std::string path_to_file): DumpMessage(path_to_file){
-        this->status_ = MessageStatus::ABSENT;
-        time_ = GetCurrentTimeUTC();
+    MessageAbsent(std::string path_to_file): DumpMessage(path_to_file) {
+        status_ = MessageStatus::ABSENT;
     };
 
-    json DumpToJsonObj() override;
+    json dumpToJsonObj() override;
 };
 
 #endif

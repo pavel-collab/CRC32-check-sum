@@ -12,8 +12,8 @@ enum class EventId {CrcInitialize, CheckSum, AddFile, RmFile, CheckFile, Exit};
 /**
  * \brief Interface class for the event in the system.
  *
- * This class describe the interface for the event, that demon have to monitor.
- * Object of Event incapsulate path to the directory that demon monitors.
+ * This class describe the interface for the event, that Daemon have to monitor.
+ * Object of Event incapsulate path to the directory that Daemon monitors.
  */
 class Event {
 protected:
@@ -35,8 +35,8 @@ public:
 /**
  * \brief Initial event.
  * 
- * This type of event generates when demon is started.
- * CrcInitializeEvent triggers demon to scan files in directory, calculate it's crc check sums and save it.
+ * This type of event generates when Daemon is started.
+ * CrcInitializeEvent triggers Daemon to scan files in directory, calculate it's crc check sums and save it.
  */
 class CrcInitializeEvent final: public Event {
 public:
@@ -49,7 +49,7 @@ public:
 };
 
 /**
- * \brief Event that triggers demon to check crc32 sums for all of the files in the directory.
+ * \brief Event that triggers Daemon to check crc32 sums for all of the files in the directory.
  */
 class CheckSumEvent final: public Event {
 public:
@@ -62,7 +62,7 @@ public:
 };
 
 /**
- * \brief Event that generated when new file is created in the directory. Triggers demon to calculate and save crc32 sum for the new file.
+ * \brief Event that generated when new file is created in the directory. Triggers Daemon to calculate and save crc32 sum for the new file.
  */
 class AddFileEvent final: public Event {
     std::string file_name_;
@@ -76,7 +76,7 @@ public:
 };
 
 /**
- * \brief Event that generated when some file is removed from the directory. Triggers the demon to erase information about this file.
+ * \brief Event that generated when some file is removed from the directory. Triggers the Daemon to erase information about this file.
  */
 class RmFileEvent final: public Event {
     std::string file_name_;
@@ -90,7 +90,7 @@ public:
 };
 
 /**
- * \brief Event that generated when some file is modified. Triggers demon to check crc32 check sum for this file.
+ * \brief Event that generated when some file is modified. Triggers Daemon to check crc32 check sum for this file.
  */
 class CheckFileEvent final: public Event {
     std::string file_name_;
@@ -104,7 +104,7 @@ public:
 };
 
 /**
- * \brief Event that generated when system catch the signal to stop demon. Trigges demon to finish his proces.
+ * \brief Event that generated when system catch the signal to stop Daemon. Trigges Daemon to finish his proces.
  */
 class ExitEvent final: public Event {
 public:

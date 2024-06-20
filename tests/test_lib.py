@@ -12,7 +12,7 @@ In this file you can find some auxiliary functions for the python tests.
 syslog_file_path = "/var/log/syslog" # path to the syslog (Linux Ubuntu)
 json_file_path = "/tmp/log.json" # default path to the json log file
 
-# create temporary directory, that will be target for demon in test
+# create temporary directory, that will be target for Daemon in test
 def create_tmp_dir(path_to_dir: str) -> None:
     tmp_dir_name = f"{path_to_dir}/tmp"
     

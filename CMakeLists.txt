@@ -1,17 +1,15 @@
 cmake_minimum_required (VERSION 3.11)
-project ("Crc32_demon" LANGUAGES C CXX)
+project ("Crc32_daemon" LANGUAGES C CXX)
 
-# THE 17TH STANDART
 set(CMAKE_CXX_STANDARD 14)
 
 # EXECUTABLE FILE PROPERTIES
 set(EXEC_FILE "main")
-set(INCLUDE_DEMON include/Demon.hpp)
 set(SOURCES 
     src/main.cpp
     src/crc32.cpp
-    src/event_hendler.cpp
-    src/Demon.cpp
+    src/event_handler.cpp
+    src/Daemon.cpp
     src/Event.cpp
     src/DumpMessage.cpp
 )
@@ -26,7 +24,6 @@ target_include_directories (${EXEC_FILE} PRIVATE include)
 target_include_directories (${EXEC_FILE} PRIVATE ${CMAKE_SOURCE_DIR})
 
 add_compile_options(
-    -g
     -O2    
 
     -Werror

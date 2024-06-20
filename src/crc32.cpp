@@ -30,12 +30,12 @@ unsigned int CalculateCrc32(const char* filename) {
     stat(filename, &st);
     long long file_size = (long long) st.st_size;
 
-    unsigned char* buf = (unsigned char*) calloc(max_len, sizeof(char));
+    unsigned char* buf = new unsigned char[max_len];
 
-    // __O_NOATIME Do not update the file last access time (check man 2 open)
+    // __O_NOATIME Do not update the file last access time (see man 2 open)
     int file = open(filename, O_RDONLY | __O_NOATIME);
     if (file < 0) {
-        openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+        openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] unable to open file %s\n", filename);
         closelog();
         exit(EXIT_FAILURE);
@@ -47,7 +47,7 @@ unsigned int CalculateCrc32(const char* filename) {
         ssize_t read_symb_amount = read(file, buf, max_len);
 
         if (read_symb_amount < 0) {
-            openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+            openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
             syslog(LOG_INFO, "[err] unable to read file %s\n", filename);
             closelog();
             close(file);
@@ -59,7 +59,7 @@ unsigned int CalculateCrc32(const char* filename) {
         memset(buf, 0, max_len);
     }
     close(file);
-    free(buf);
+    delete[] buf;
     return check_sum;
 }
 
@@ -72,7 +72,7 @@ void GetObjectList(const char* path_to_directory, std::vector<std::string>* file
     struct dirent **namelist;
     int n = scandir(path_to_directory, &namelist, filter, alphasort);
     if (n == -1) {
-        openlog("CRC32 DEMON", LOG_CONS | LOG_PID, LOG_LOCAL0);
+        openlog("CRC32 daemon", LOG_CONS | LOG_PID, LOG_LOCAL0);
         syslog(LOG_INFO, "[err] unable to scan directory %s\n", path_to_directory);
         closelog();
         exit(EXIT_FAILURE);

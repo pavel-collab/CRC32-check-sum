@@ -75,7 +75,7 @@ def test_stress():
     check_result = False
     file_content = fd.read().split("\n")
     for line in file_content:
-        if "[inf] demon stop" in line:
+        if "[inf] daemon stop" in line:
             check_result = True
             fd.close()
             break

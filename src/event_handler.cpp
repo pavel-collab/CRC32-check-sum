@@ -7,7 +7,7 @@
 
 #include "table.hpp"
 #include "crc32.hpp"
-#include "Demon.hpp"
+#include "Daemon.hpp"
 #include "event_handler.hpp"
 
 /**
@@ -15,9 +15,9 @@
  * (man 7 inotify)
  * 
  * @param fd -- inotify file descriptor
- * @param demon_ptr -- pointer to the demon object (we need it to put Event object in the event queue)
+ * @param daemon_ptr -- pointer to the Daemon object (we need it to put Event object in the event queue)
  */
-void handle_events(int fd, Demon* demon_ptr) {
+void handle_events(int fd, Daemon* daemon_ptr) {
     char buf[4096];
     const struct inotify_event *event;
     int i;
@@ -42,25 +42,25 @@ void handle_events(int fd, Demon* demon_ptr) {
             event = (const struct inotify_event *) ptr;
 
             if ((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
-                Event* new_event_ptr = new AddFileEvent(demon_ptr->path_to_dir_, event->name);
-                demon_ptr->addEvent(new_event_ptr);
+                Event* new_event_ptr = new AddFileEvent(daemon_ptr->getTargetDirPath(), event->name);
+                daemon_ptr->addEvent(new_event_ptr);
             }
 
             if ((event->mask & IN_DELETE) && !(event->mask & IN_ISDIR)) {
-                Event* new_event_ptr = new RmFileEvent(demon_ptr->path_to_dir_, event->name);
-                demon_ptr->addEvent(new_event_ptr);
+                Event* new_event_ptr = new RmFileEvent(daemon_ptr->getTargetDirPath(), event->name);
+                daemon_ptr->addEvent(new_event_ptr);
             }
 
             if ((event->mask & IN_MODIFY) && !(event->mask & IN_ISDIR)) {
-                Event* new_event_ptr = new CheckFileEvent(demon_ptr->path_to_dir_, event->name);
-                demon_ptr->addEvent(new_event_ptr);
+                Event* new_event_ptr = new CheckFileEvent(daemon_ptr->getTargetDirPath(), event->name);
+                daemon_ptr->addEvent(new_event_ptr);
             }
         }
     }
 }
 
 void* threadInotifyRun(void* arg) {
-    Demon* demon = (Demon*) arg;
+    Daemon* daemon = (Daemon*) arg;
 
     // here we use poll to monitore inotify events (check man poll) 
     char buf;
@@ -76,14 +76,9 @@ void* threadInotifyRun(void* arg) {
         return NULL;
     }
 
-    wd = (int*) calloc(1, sizeof(int));
-    if (wd == NULL) {
-        perror("calloc");
-        close(fd);
-        return NULL;
-    }
+    wd = new int[1];
 
-    wd[0] = inotify_add_watch(fd, demon->path_to_dir_.c_str(), IN_CREATE | IN_DELETE | IN_MODIFY);
+    wd[0] = inotify_add_watch(fd, daemon->getTargetDirPath().c_str(), IN_CREATE | IN_DELETE | IN_MODIFY);
     if (wd[0] == -1) {
         perror("inotify_add_watch");
         close(fd);
@@ -116,19 +111,19 @@ void* threadInotifyRun(void* arg) {
             }
 
             if (fds[1].revents & POLLIN) {
-                handle_events(fd, demon);
+                handle_events(fd, daemon);
             }
         }
     }
 
     close(fd);
-    free(wd);
+    delete[] wd;
 
     return NULL;
 }
 
-void* threadDemonRun(void* arg) {
-    Demon* demon = (Demon*) arg;
-    demon->startMainLoop();    
+void* threadDaemonRun(void* arg) {
+    Daemon* daemon = (Daemon*) arg;
+    daemon->startMainLoop();    
     return NULL;
 }

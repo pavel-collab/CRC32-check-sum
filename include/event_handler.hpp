@@ -7,8 +7,8 @@
 void* threadInotifyRun(void* arg);
 
 /**
- * This function is ran in thread where we start the main demon loop
+ * This function is ran in thread where we start the main Daemon loop
  */
-void* threadDemonRun(void* arg);
+void* threadDaemonRun(void* arg);
 
 #endif //_EVENT_HANDLDER_H_
