@@ -26,15 +26,16 @@ def prepare_test_dir(path_to_dir: str):
         else:
             alpha_ptr += 1
 
+proc_terminate_flag = False
 
 def threa_signal_function(proc_pid: int):
     sleep(5)
-    for _ in range(8):
+    while(not proc_terminate_flag):
         os.kill(proc_pid, 10)
         sleep(5)
 
-def thread_change_dir_function(test_dir_path: str):
-    for _ in range(10):
+def thread_change_dir_function(test_dir_path: str):    
+    while(not proc_terminate_flag):
         file_number = randint(0, 499)
         symbol_number = randint(1, 100)
         random_str = gen_rand_word(symbol_number)
@@ -43,6 +44,8 @@ def thread_change_dir_function(test_dir_path: str):
         sleep(1)
 
 def test_stress():
+    global proc_terminate_flag
+
     test_time = 10
     current_file = os.path.realpath(__file__)
     current_directory = os.path.dirname(current_file)
@@ -60,13 +63,9 @@ def test_stress():
             signal_thread.start()
             change_dir_thread.start()
 
-            # sleep(5)
-            # for _ in range(40):
-            #     proc.send_signal(10)
-            #     sleep(5)
-
-            proc.wait(100)
+            proc.wait(600)
         except subprocess.TimeoutExpired:
+            proc_terminate_flag = True        
             proc.terminate()
             proc.wait()
 
