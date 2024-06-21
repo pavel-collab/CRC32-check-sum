@@ -130,7 +130,6 @@ int main(int argc, char *argv[]) {
       printf("\ncan't fork");
       exit(1);
     } else if (parpid != 0) {
-      printf("Parent procwith pid %d\n", getpid());
       exit(0);
     }
     setsid(); // switch child proc in new session
