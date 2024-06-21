@@ -6,8 +6,6 @@
 #include "Event.hpp"
 #include "syslogDump.hpp"
 
-#include <fstream>
-
 Daemon *Daemon::daemon_instance = nullptr;
 DaemonDestroyer Daemon::destroyer;
 
@@ -39,16 +37,15 @@ void Daemon::startMainLoop() {
         pthread_mutex_unlock(&mutex_);
 
         if (new_event->eventId == EventId::Exit) {
-          dumpJsonLog();
-          new_event->Handler(&crc_sums_, &message_vector_);
+          new_event->Handler(&crc_sums_, &message_manager_);
           break;
         }
 
         // execute logic, triggered by this event
-        new_event->Handler(&crc_sums_, &message_vector_);
+        new_event->Handler(&crc_sums_, &message_manager_);
       }
-    } catch (const std::runtime_error& error) {
-      dumpJsonLog();
+    } catch (const std::runtime_error &error) {
+      message_manager_.dumpJsonLog();
       break;
     }
   }
@@ -58,17 +55,6 @@ void Daemon::addEvent(Event *event) {
   pthread_mutex_lock(&mutex_);
   event_queue_.push(event);
   pthread_mutex_unlock(&mutex_);
-}
-
-void Daemon::dumpJsonLog() {
-  json general_json_obj(message_vector_);
-  std::ofstream json_log_file(path_to_json_log_);
-  if (json_log_file.is_open()) {
-    json_log_file << general_json_obj.dump();
-    json_log_file.close();
-  } else {
-    SYSLOG_DUMP("[err] unable to dump long info into json file\n");
-  }
 }
 
 DaemonDestroyer::~DaemonDestroyer() { delete daemon_instance; }

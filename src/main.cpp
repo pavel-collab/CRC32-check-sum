@@ -11,8 +11,8 @@
 #include "Event.hpp"
 #include "crc32.hpp"
 #include "event_handler.hpp"
-#include "table.hpp"
 #include "syslogDump.hpp"
+#include "table.hpp"
 
 namespace {
 // var for custom signal handler
@@ -101,8 +101,9 @@ int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
   if (periode <= 0) {
-    SYSLOG_DUMP("[err] periode can't be less or equal 0, but actual periode is %d\n",
-                periode);
+    SYSLOG_DUMP(
+        "[err] periode can't be less or equal 0, but actual periode is %d\n",
+        periode);
     return -1;
   }
 
@@ -143,11 +144,11 @@ int main(int argc, char *argv[]) {
   std::signal(SIGTERM, signal_handler); // SIGTERM -- Daemon end of work
 
   // ignore this signals
-  std::signal(SIGQUIT, signal_handler);
-  std::signal(SIGINT, signal_handler);
-  std::signal(SIGHUP, signal_handler);
-  std::signal(SIGSTOP, signal_handler);
-  std::signal(SIGCONT, signal_handler);
+  std::signal(SIGQUIT, SIG_IGN);
+  std::signal(SIGINT, SIG_IGN);
+  std::signal(SIGHUP, SIG_IGN);
+  std::signal(SIGSTOP, SIG_IGN);
+  std::signal(SIGCONT, SIG_IGN);
 
   alarm(periode);
 
@@ -172,7 +173,7 @@ int main(int argc, char *argv[]) {
   // waiting for the some signal
   while (1) {
     sleep(1);
-    
+
     if (gSignalStatus == SIGUSR1 || gSignalStatus == SIGALRM) {
       Event *new_event_ptr = new CheckSumEvent(path_to_directory);
       new_daemon->addEvent(new_event_ptr);

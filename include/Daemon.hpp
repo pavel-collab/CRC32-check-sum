@@ -5,12 +5,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "json/single_include/nlohmann/json.hpp"
-
-using json = nlohmann::json;
-
 #include "DumpMessage.hpp"
 #include "Event.hpp"
+#include "MessageManager.hpp"
 
 class Daemon; // опережающее объявление
 
@@ -36,20 +33,15 @@ public:
  */
 class Daemon final {
 private:
-  const char *path_to_json_log_ = "/tmp/log.json";
   static Daemon *daemon_instance;
   static DaemonDestroyer destroyer;
+  MessageManager message_manager_;
+
   std::string path_to_dir_;
 
   std::queue<Event *> event_queue_;
   pthread_mutex_t mutex_;
   std::unordered_map<std::string, unsigned int> crc_sums_;
-  std::vector<json> message_vector_;
-
-  /**
-   * Method dumps saved history of events in the json log file.
-   */
-  void dumpJsonLog();
 
 protected:
   Daemon(std::string &path_to_dir)

@@ -12,6 +12,7 @@ set(SOURCES
     src/Daemon.cpp
     src/Event.cpp
     src/DumpMessage.cpp
+    src/MessageManager.cpp
 )
 
 # EXECUTABLES

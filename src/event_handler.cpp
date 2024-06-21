@@ -10,6 +10,28 @@
 #include "event_handler.hpp"
 #include "table.hpp"
 
+namespace {
+void CreateAndPushNewEvent(enum EventId event_type, const char *event_name,
+                           Daemon *daemon_ptr) {
+  Event *event = nullptr;
+
+  switch (event_type) {
+  case EventId::AddFile:
+    event = new AddFileEvent(daemon_ptr->getTargetDirPath(), event_name);
+    break;
+  case EventId::RmFile:
+    event = new RmFileEvent(daemon_ptr->getTargetDirPath(), event_name);
+    break;
+  case EventId::CheckFile:
+    event = new CheckFileEvent(daemon_ptr->getTargetDirPath(), event_name);
+    break;
+  default:
+    return;
+  }
+  daemon_ptr->addEvent(event);
+}
+} // namespace
+
 /**
  * Function read caught inotify events and generate sutable Event objects.
  * (man 7 inotify)
@@ -43,23 +65,21 @@ void handle_events(int fd, Daemon *daemon_ptr) {
          ptr += sizeof(struct inotify_event) + event->len) {
       event = (const struct inotify_event *)ptr;
 
-      if ((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
-        Event *new_event_ptr =
-            new AddFileEvent(daemon_ptr->getTargetDirPath(), event->name);
-        daemon_ptr->addEvent(new_event_ptr);
+      if (event->mask & IN_ISDIR) {
+        continue;
       }
 
-      if ((event->mask & IN_DELETE) && !(event->mask & IN_ISDIR)) {
-        Event *new_event_ptr =
-            new RmFileEvent(daemon_ptr->getTargetDirPath(), event->name);
-        daemon_ptr->addEvent(new_event_ptr);
+      enum EventId event_type;
+
+      if (event->mask & IN_CREATE) {
+        event_type = EventId::AddFile;
+      } else if (event->mask & IN_DELETE) {
+        event_type = EventId::RmFile;
+      } else if (event->mask & IN_MODIFY) {
+        event_type = EventId::CheckFile;
       }
 
-      if ((event->mask & IN_MODIFY) && !(event->mask & IN_ISDIR)) {
-        Event *new_event_ptr =
-            new CheckFileEvent(daemon_ptr->getTargetDirPath(), event->name);
-        daemon_ptr->addEvent(new_event_ptr);
-      }
+      CreateAndPushNewEvent(event_type, event->name, daemon_ptr);
     }
   }
 }

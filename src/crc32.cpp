@@ -7,12 +7,12 @@
 #include <unistd.h>
 
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
 
-#include "table.hpp"
 #include "syslogDump.hpp"
+#include "table.hpp"
 
 /**
  * Function calculates crc32 using data from given buffer
