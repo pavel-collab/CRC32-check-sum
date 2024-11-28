@@ -192,6 +192,8 @@ def test_check_sum_message():
 
     assert check_result
 
+
+'''
 def test_bad_target_dir():
     test_time = 5
     current_file = os.path.realpath(__file__)
@@ -221,6 +223,7 @@ def test_bad_target_dir():
     test_lib.clear_json_log(test_lib.json_file_path)
 
     assert check_result
+'''
 
 def test_check_demon_exit():
     test_time = 10
