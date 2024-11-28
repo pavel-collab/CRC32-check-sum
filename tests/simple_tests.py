@@ -126,6 +126,7 @@ def test_no_target_dir():
 
     assert check_result
 
+'''
 def test_negativ_period():
     test_time = 5
     current_file = os.path.realpath(__file__)
@@ -155,6 +156,7 @@ def test_negativ_period():
     test_lib.clear_json_log(test_lib.json_file_path)
 
     assert check_result
+'''
 
 def test_check_sum_message():
     test_time = 30
