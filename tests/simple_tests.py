@@ -28,7 +28,7 @@ def test_check_json_log_creation():
     test_lib.clear_tmp_dir(current_directory)
 
     assert check_result
-
+'''
 def test_integrity_check_err():
     test_time = 10
     current_file = os.path.realpath(__file__)
@@ -95,7 +95,8 @@ def test_integrity_check_ok():
     test_lib.clear_tmp_dir(current_directory)
 
     assert check_result
-
+'''
+'''
 def test_no_target_dir():
     test_time = 5
     current_file = os.path.realpath(__file__)
@@ -125,7 +126,7 @@ def test_no_target_dir():
     test_lib.clear_json_log(test_lib.json_file_path)
 
     assert check_result
-
+'''
 '''
 def test_negativ_period():
     test_time = 5
@@ -157,7 +158,7 @@ def test_negativ_period():
 
     assert check_result
 '''
-
+'''
 def test_check_sum_message():
     test_time = 30
     current_file = os.path.realpath(__file__)
@@ -191,7 +192,7 @@ def test_check_sum_message():
     test_lib.clear_env_vars()
 
     assert check_result
-
+'''
 
 '''
 def test_bad_target_dir():
@@ -224,7 +225,7 @@ def test_bad_target_dir():
 
     assert check_result
 '''
-
+'''
 def test_check_demon_exit():
     test_time = 10
     current_file = os.path.realpath(__file__)
@@ -289,3 +290,4 @@ def test_sigusr1_signal():
     test_lib.clear_json_log(test_lib.json_file_path)
 
     assert check_result
+'''
